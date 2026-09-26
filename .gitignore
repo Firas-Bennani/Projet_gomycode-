@@ -51,3 +51,9 @@ frontend/dist-ssr/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local virtualenv (Engineer 1)
+.venv/
+
+# AI datasets and scratch (Engineer 1)
+backend/ai/data/raw/
