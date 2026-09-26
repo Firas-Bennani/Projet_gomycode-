@@ -53,6 +53,8 @@ class AgentOrchestrator:
         self.machine_agent.history.clear()
         self._last_gap_log.clear()
         self.recent_observations = []
+        from ai.n8n_client import clear_resume_urls
+        clear_resume_urls()
         self._log_agent_step(
             "recommendation_agent",
             ["SYSTEM"],
@@ -322,6 +324,11 @@ class AgentOrchestrator:
             f"Created Incident {inc_id} ({incident.type}) with {len(incident.recommended_actions)} recommended actions",
             [r.action for r in incident.recommended_actions]
         )
+
+        # Hand the incident to n8n for LLM enrichment. Fire-and-forget by design: detection
+        # is already complete and the template recommendations above stand on their own.
+        from ai.n8n_client import notify_incident_background
+        notify_incident_background(incident, observations)
 
         # Broadcast incident to Frontend
         await event_bus.publish(

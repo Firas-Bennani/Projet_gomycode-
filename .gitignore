@@ -57,3 +57,6 @@ Thumbs.db
 
 # AI datasets and scratch (Engineer 1)
 backend/ai/data/raw/
+
+# Stray dataset downloads kept outside the repo tree (Engineer 1)
+DATESSSS/

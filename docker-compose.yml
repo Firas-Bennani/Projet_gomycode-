@@ -13,6 +13,12 @@ services:
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      # ---- Engineer 1 (AI / n8n bridge). Detection never depends on n8n; if these
+      # ---- point nowhere the orchestrator logs a warning and uses template output.
+      - N8N_ENABLED=true
+      - N8N_INCIDENT_WEBHOOK_URL=http://n8n:5678/webhook/incident
+      - N8N_PUBLIC_BASE=http://localhost:5678
+      - N8N_INTERNAL_BASE=http://n8n:5678
     volumes:
       - ./backend:/app
     depends_on:
@@ -51,3 +57,59 @@ services:
       - "1883:1883"
       - "9001:9001"
     restart: unless-stopped
+
+  # ==========================================================================
+  # Engineer 1 (AI / n8n orchestration). Independent of the backend: if these
+  # containers are down, incident detection still works and the backend falls
+  # back to its own template recommendations.
+  # ==========================================================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: copilot_n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Europe/London
+      - TZ=Europe/London
+      # Allow http:// access from the host without a TLS cookie.
+      - N8N_SECURE_COOKIE=false
+      # Base URL n8n uses to build production webhook and Wait-node resume URLs.
+      # localhost works for a backend running on the host (venv). A backend running
+      # in this compose network reaches the same n8n at http://n8n:5678 — the bridge
+      # rewrites N8N_PUBLIC_BASE -> N8N_INTERNAL_BASE so both modes work.
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # RAG corpus, read-only, for the Step 5 ingestion workflow.
+      - ./backend/ai/rag/corpus:/data/corpus:ro
+    extra_hosts:
+      # Lets n8n call a backend running on the host at http://host.docker.internal:8000
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - pgvector
+    restart: unless-stopped
+
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: copilot_pgvector
+    environment:
+      - POSTGRES_DB=n8n_rag
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n_rag_pw
+    ports:
+      # 5433 on the host so it cannot clash with a local Postgres on 5432.
+      - "5433:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d n8n_rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
+  pgvector_data:

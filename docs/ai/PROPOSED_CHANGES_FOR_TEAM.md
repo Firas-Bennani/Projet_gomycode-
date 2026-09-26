@@ -109,3 +109,43 @@ minute's worth of heating (26 °C → 53 °C in 8 ticks). Reported per real seco
 slopes **per plant minute**. The same ramp now reads ~+2 to +3 °C/min, which is a realistic
 industrial figure and makes the existing 2.0 / 4.0 °C-per-minute thresholds meaningful.
 Set `DEMO_TIME_SCALE=1` to get raw per-real-second behaviour back.
+
+---
+
+## P5 — `backend/iot/simulator.py` (Engineer 2) — stop driving a machine that has been shut down
+
+**Priority: low (cosmetic for the demo, but a jury may notice).**
+
+`command_engine.execute_action("STOP_MACHINE")` sets M-04 to a safe baseline
+(`pressure=4.0`, `rpm=0`, `temperature=28`). On the very next tick `_tick_overheating()`
+overwrites `pressure` back to the scenario curve (8.9 bar) and `_tick_fire()` does the same
+for smoke after suppression. So after a successful shutdown the dashboard can still show
+8.9 bar on a machine whose spindle is verified at 0 RPM.
+
+I handled it on my side: `GET /api/ai/n8n/verify/{id}` separates **gating** checks (did every
+action reach a terminal state, did the actuators report success) from **telemetry** (what the
+live sensors say), and returns `telemetry_consistent` so the contradiction is reported rather
+than hidden. Verification no longer fails because of it.
+
+The clean fix, if Engineer 2 wants it: track stopped machines and skip them in the tick.
+
+```python
+    def __init__(self):
+        ...
+        self.stopped_machines: set = set()      # honoured by _tick_overheating
+
+    async def _tick_overheating(self):
+        ...
+        if "M-04" in state.machines and "M-04" not in self.stopped_machines:
+            ...                                  # existing parameter updates
+```
+
+and in `command_engine.execute_action`, inside the `STOP_MACHINE` branch:
+
+```python
+                from iot.simulator import simulator
+                simulator.stopped_machines.add(target)
+```
+
+plus `self.stopped_machines.clear()` in `reset()`. Same idea for suppression vs. smoke.
+Tell me if you merge it and I will add `telemetry_consistent` to the gating set.

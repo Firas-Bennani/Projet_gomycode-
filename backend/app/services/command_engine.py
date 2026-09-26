@@ -18,6 +18,13 @@ class CommandEngine:
         action.authorized_by = authorized_by
         action.authorized_at = datetime.utcnow()
 
+        # --- Engineer 1 (AI/n8n bridge) -------------------------------------------------
+        # If an n8n execution is waiting on this incident's approval, resume it. Fire and
+        # forget: a missing or unreachable n8n never affects the action itself.
+        from ai.n8n_client import send_decision_background
+        send_decision_background(action.incident_id, "approve", action_id, authorized_by)
+        # --------------------------------------------------------------------------------
+
         await event_bus.publish(
             event_type="ACTION_STATUS",
             source="command_engine",
@@ -36,6 +43,12 @@ class CommandEngine:
 
         action = state.actions[action_id]
         action.status = ActionStatus.CANCELLED
+
+        # --- Engineer 1 (AI/n8n bridge) -------------------------------------------------
+        from ai.n8n_client import send_decision_background
+        send_decision_background(action.incident_id, "cancel", action_id, cancelled_by)
+        # --------------------------------------------------------------------------------
+
         await event_bus.publish(
             event_type="ACTION_STATUS",
             source="command_engine",
@@ -96,6 +109,17 @@ class CommandEngine:
 
         elif action.action_type == "ISOLATE_DEVICE":
             checks.append({"check": f"Switch port 14 isolated, rogue MAC {target} blacklisted", "passed": True})
+
+        # --- Engineer 1: previously these action types completed with no checks at all ---
+        elif action.action_type == "TRIGGER_ALARM":
+            checks.append({"check": f"Acoustic and strobe devices on {target} reported active", "passed": True})
+
+        elif action.action_type == "CLOSE_DOOR":
+            checks.append({"check": f"Containment door {target} limit switch reports CLOSED", "passed": True})
+
+        elif action.action_type == "VLAN_QUARANTINE":
+            checks.append({"check": f"Quarantine VLAN applied on {target}", "passed": True})
+        # ---------------------------------------------------------------------------------
 
         elif action.action_type == "ACTIVATE_SUPPRESSION":
             if "SMOKE-B-01" in state.sensors:

@@ -20,6 +20,7 @@ from app.api.ai import router as ai_router
 from app.api.digital_twin import router as digital_twin_router
 from app.api.demo import router as demo_router
 from app.api.general import router as general_router
+from app.api.n8n_bridge import router as n8n_bridge_router  # Engineer 1 (AI/n8n bridge)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("main")
@@ -65,6 +66,7 @@ app.include_router(ai_router, prefix="/api")
 app.include_router(digital_twin_router, prefix="/api")
 app.include_router(demo_router, prefix="/api")
 app.include_router(general_router, prefix="/api")
+app.include_router(n8n_bridge_router, prefix="/api")  # Engineer 1 (AI/n8n bridge)
 
 # WebSocket Endpoint
 @app.websocket("/ws/{channel}")

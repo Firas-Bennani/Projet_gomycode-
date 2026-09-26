@@ -1,0 +1,389 @@
+{
+  "name": "Incident Response v1 (deterministic, no LLM)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "97833be7-0e31-58ad-9ec8-ceb701b094e4",
+      "name": "Incident webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        300
+      ],
+      "webhookId": "0ed68163-37be-5a06-86b1-7815a171c8da"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deterministic recommendation. No LLM: this is the fallback path that must always work,\n// and in v1 it is the only path. It chooses ONLY from allowed_actions, which the backend\n// built from ai/actions_catalog.py.\nconst input = $input.first().json;\nconst payload = input.body || input;\nconst incident = payload.incident || {};\nconst allowed = payload.allowed_actions || [];\nconst evidence = payload.evidence || [];\nconst workers = payload.workers || [];\n\nconst allowedIds = allowed.map(a => a.id);\nconst byHazard = {\n  MACHINE_OVERHEATING: ['stop_machine', 'evacuate_zone', 'activate_cooling'],\n  INDUSTRIAL_FIRE: ['trigger_alarm', 'evacuate_zone', 'close_door', 'activate_suppression'],\n  CYBER_INTRUSION: ['vlan_quarantine', 'isolate_device'],\n};\nconst chosen = (byHazard[incident.type] || allowedIds).filter(id => allowedIds.includes(id));\n\nconst hazard = String(incident.type || 'hazard').replace(/_/g, ' ').toLowerCase();\nconst assets = (incident.affected_assets || []).join(', ') || 'the affected zone';\nconst names = workers.map(w => `${w.id} (${w.role})`).join(', ');\n\nreturn [{\n  json: {\n    incident_id: payload.incident_id,\n    backend_base_url: payload.backend_base_url,\n    allowed_action_ids: allowedIds,\n    what: `${hazard} affecting ${assets} in ${incident.zone}`,\n    why: evidence.map(e => `${e.source}: ${e.detail}`),\n    impact: workers.length\n      ? `${workers.length} person(s) exposed in ${incident.zone}: ${names}. Unplanned loss of ${assets}.`\n      : `No personnel currently detected in ${incident.zone}. Unplanned loss of ${assets}.`,\n    prediction: `Without intervention the condition on ${assets} is expected to continue worsening; `\n      + `severity at detection was ${incident.severity} with ${Math.round((incident.confidence || 0) * 100)}% fused confidence.`,\n    recommended_action_ids: chosen,\n    sources: [],\n    produced_by: 'n8n template (deterministic, no LLM)',\n    fallback: true,\n  },\n}];"
+      },
+      "id": "021d1c9b-12e4-5de2-b6cd-32816ce4640f",
+      "name": "Template recommendation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Belt and braces: the backend validates ids against the catalogue as well, but an id that\n// never leaves n8n is one fewer rejection to explain. Also de-duplicates.\nconst item = $input.first().json;\nconst allowed = new Set(item.allowed_action_ids || []);\nconst proposed = item.recommended_action_ids || [];\nconst validated = [...new Set(proposed)].filter(id => allowed.has(id));\nconst rejected = [...new Set(proposed)].filter(id => !allowed.has(id));\nreturn [{ json: { ...item, recommended_action_ids: validated, rejected_action_ids: rejected } }];"
+      },
+      "id": "f5a946b8-5d5e-564d-b64f-f755aa0d8976",
+      "name": "Validate against allowed_actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.backend_base_url }}/api/ai/n8n/enrichment/{{ $json.incident_id }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ what: $json.what, why: $json.why, impact: $json.impact, prediction: $json.prediction, recommended_action_ids: $json.recommended_action_ids, sources: $json.sources, produced_by: $json.produced_by, fallback: $json.fallback, resume_url: $execution.resumeUrl }) }}"
+      },
+      "id": "c44d073e-7f67-5bb9-b32d-114023ce1fe5",
+      "name": "POST enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "limitWaitTime": true,
+        "resumeAmount": 180,
+        "resumeUnit": "seconds",
+        "options": {}
+      },
+      "id": "b516c489-60e8-5329-80fb-fbec4e845cbf",
+      "name": "Wait for owner decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        300
+      ],
+      "webhookId": "b1c57b18-52e3-5228-a41a-a5e4f0c7285e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9ec3bd3b-4a16-5dfe-b7cf-ddf80f70c86e",
+              "leftValue": "={{ ($json.body && $json.body.decision) || $json.decision || 'timeout' }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "de3871ff-6647-5dc4-b1d2-12b29c417e8d",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "e41f67e7-bd2d-5122-9c1e-c7a9107c4e41",
+      "name": "Wait 15s for the plant to settle",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        180
+      ],
+      "webhookId": "1099bb12-8c39-5b8b-a6b9-3c6b8908889c"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/verify/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "options": {}
+      },
+      "id": "feaf76e9-72d9-5b0d-ba94-7605c1e75bc7",
+      "name": "GET verify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        180
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bd004076-30d5-5429-93d6-1207d62cf14b",
+              "leftValue": "={{ $json.verified ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a2e3d106-dc2c-5a14-8c66-e4897f3b27d4",
+      "name": "Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'RESOLVING', note: 'Owner authorised the action and verification passed: ' + ($json.details || []).filter(d => d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v1' }) }}"
+      },
+      "id": "cac0c999-87ca-5d80-b077-36846ededdc0",
+      "name": "POST status RESOLVING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        80
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'ESCALATED', note: 'Action was authorised but verification did not confirm the plant changed: ' + ($json.details || []).filter(d => !d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v1' }) }}"
+      },
+      "id": "20748177-0a29-5dd7-ad9b-fa42827c25fd",
+      "name": "POST status ESCALATED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The Wait node resumes either because the owner decided, or because its 180 s limit expired.\n// Distinguish the two: a cancel is a human decision, a timeout is an unattended incident.\nconst decision = ($json.body && $json.body.decision) || $json.decision || 'timeout';\nconst cancelled = decision === 'cancel';\nreturn [{\n  json: {\n    decision,\n    status: cancelled ? 'DISMISSED' : 'ESCALATED',\n    note: cancelled\n      ? 'Owner cancelled the recommended action in the dashboard; incident dismissed by human decision.'\n      : 'No owner decision within the 180 s approval window; escalated for human handling.',\n  },\n}];"
+      },
+      "id": "269d151c-852f-5535-9644-b62e6b38c34f",
+      "name": "Outcome without approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.status, note: $json.note, produced_by: 'n8n incident_response_v1' }) }}"
+      },
+      "id": "903140a9-92fb-5e93-bf51-e585be505619",
+      "name": "POST status (cancel or timeout)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        460
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Incident webhook": {
+      "main": [
+        [
+          {
+            "node": "Template recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template recommendation": {
+      "main": [
+        [
+          {
+            "node": "Validate against allowed_actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate against allowed_actions": {
+      "main": [
+        [
+          {
+            "node": "POST enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST enrichment": {
+      "main": [
+        [
+          {
+            "node": "Wait for owner decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for owner decision": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Wait 15s for the plant to settle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Outcome without approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 15s for the plant to settle": {
+      "main": [
+        [
+          {
+            "node": "GET verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET verify": {
+      "main": [
+        [
+          {
+            "node": "Verified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verified?": {
+      "main": [
+        [
+          {
+            "node": "POST status RESOLVING",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST status ESCALATED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outcome without approval": {
+      "main": [
+        [
+          {
+            "node": "POST status (cancel or timeout)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "ai-industrial-copilot"
+  }
+}
