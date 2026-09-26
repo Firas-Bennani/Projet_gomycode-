@@ -15,6 +15,29 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("n8n_client")
 
+
+def _load_env_files() -> None:
+    """Load `.env` from the repo root and from `backend/` into the process environment.
+
+    `app/config.py` reads `.env` through pydantic-settings, which populates a Settings object
+    but does **not** put the values in `os.environ` — and everything in this module reads
+    `os.getenv`. Without this, editing `.env` would silently have no effect on the bridge.
+    Real environment variables always win (`override=False`).
+    """
+    try:
+        from dotenv import load_dotenv
+    except Exception:  # python-dotenv missing: defaults below are already correct for local use
+        return
+    here = os.path.dirname(os.path.abspath(__file__))          # backend/ai
+    backend_dir = os.path.dirname(here)                        # backend
+    repo_root = os.path.dirname(backend_dir)                   # repo
+    for candidate in (os.path.join(repo_root, ".env"), os.path.join(backend_dir, ".env")):
+        if os.path.exists(candidate):
+            load_dotenv(candidate, override=False)
+
+
+_load_env_files()
+
 #: incident_id -> the n8n Wait node's resume URL. Lives here, not in schemas.py.
 RESUME_URLS: Dict[str, str] = {}
 
@@ -43,8 +66,13 @@ def timeout_seconds() -> float:
 
 def backend_base_for_n8n() -> str:
     """The URL n8n should use to call us back. Sent in the payload so the workflow JSON
-    itself never hardcodes a host."""
-    return _env("BACKEND_BASE_URL_FOR_N8N", "http://host.docker.internal:8000")
+    itself never hardcodes a host.
+
+    Default suits our actual setup: n8n on the host via `npx n8n`, backend on the host in the
+    venv. If both ever run inside docker compose, set `BACKEND_BASE_URL_FOR_N8N=http://backend:8000`;
+    for n8n in Docker reaching a host backend, `http://host.docker.internal:8000`.
+    """
+    return _env("BACKEND_BASE_URL_FOR_N8N", "http://localhost:8000")
 
 
 def _running_in_container() -> bool:

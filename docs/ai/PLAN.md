@@ -116,6 +116,19 @@ Times are targets. **GATE 1 (Step 4) must be done by 01:30 Sunday.** If late, sk
 
 ### STEP 2 — n8n + PGVector infrastructure (23:50–00:20)
 
+> **DECISION 2026-09-27 ~00:15 — supersedes the Docker/PGVector parts of this step.**
+> Docker Desktop's engine would not start on this machine and was quit to free RAM.
+> **Do not use Docker tonight.**
+> - n8n runs on the host via `npx n8n` (single Node process, a few hundred MB).
+> - **No pgvector.** At Step 5 use n8n's **Simple Vector Store** (in-memory) and keep the
+>   keyword RAG in `rag_engine.py` as the fallback.
+> - Backend runs locally in the venv, no `--reload`, one process only.
+> - n8n → backend = `http://localhost:8000`; backend → n8n = `http://localhost:5678`.
+> - Keep memory low: no extra stub servers once n8n is up.
+> - New target: **GATE 1 by 02:00**, then sleep.
+> The `n8n` and `pgvector` services stay declared in `docker-compose.yml` for Step 11's
+> from-scratch run on a machine with more RAM; they are simply not started tonight.
+
 - Add to `docker-compose.yml`:
   - `n8n` (image `n8nio/n8n`, port 5678, volume `n8n_data`, env `GENERIC_TIMEZONE=Europe/London`, `N8N_SECURE_COOKIE=false`, `WEBHOOK_URL=http://n8n:5678/`).
   - `pgvector` (image `pgvector/pgvector:pg16`, own volume, used only by n8n for RAG).
@@ -164,6 +177,45 @@ Times are targets. **GATE 1 (Step 4) must be done by 01:30 Sunday.** If late, sk
   - 📄 https://docs.n8n.io/advanced-ai/rag-in-n8n/
 - **Acceptance:** incidents show LLM what/why/impact with `sources`; with the LLM credential broken, the template still arrives.
 - Then print: "💤 Sleep checkpoint — commit done, PROGRESS.md updated. Next: Step 6." and stop.
+
+---
+
+### STEP 5b — LLM on NVIDIA NIM hosted on Brev (Sunday 07:00–08:00) 🟩 MANDATORY
+
+**NVIDIA Brev is mandatory in this hackathon.** Added 2026-09-27 ~00:20. **Do NOT do this
+tonight** — tonight stays on Gemini. Detection never depends on it either way.
+
+- Firas creates a **Brev VM Mode** instance (L40S 48 GB or A100 80 GB) and an **NGC API key**.
+- Claude guides: `brev shell <instance>` → `docker login nvcr.io` (username `$oauthtoken`,
+  password = NGC API key) → run a NIM LLM container (e.g. Llama 3.1 8B Instruct, or a Nemotron
+  model) listening on port **8000** inside the instance.
+- From the laptop: `brev port-forward <instance> --port 8001:8000`
+  → **local 8001**, because our backend already owns 8000.
+- In n8n: an **OpenAI Chat Model** credential with base URL `http://localhost:8001/v1`
+  (NIM exposes an OpenAI-compatible API), used by the Recommendation AI Agent.
+- **Fallback chain: NIM (Brev) → Gemini → deterministic templates.** The demo must never
+  depend on Brev being up. Implement as the AI Agent node's error output → second agent node
+  (Gemini) → error output → template Code node → Merge.
+- Show `LLM: NVIDIA NIM on Brev (model X)` in the incident reasoning / sources (the bridge
+  already records this: `produced_by` in the enrichment payload flows into `ai_reasoning`) and
+  in `docs/ai/DEMO.md`.
+
+**Acceptance:** an incident's reasoning names the NIM model; killing the port-forward makes the
+next incident fall back to Gemini, and disabling Gemini falls back to the template — all three
+paths demonstrated once and noted in `METRICS.md`.
+
+### STEP 6 change — train the ML models on the Brev instance
+
+Added 2026-09-27 ~00:20, replaces local training in Step 6:
+
+- Download MetroPT-3 on the Brev instance with `wget` (it is a large UCI zip; the instance has
+  the bandwidth and the disk).
+- Upload the Kaggle smoke CSV to the instance with `scp` / `brev` file transfer.
+- Run `backend/scripts/train_machine_iforest.py` and `train_smoke.py` **there**.
+- Copy the resulting `.joblib` files back into `backend/ai/models/` (they are < 5 MB, so they
+  are committed).
+- `docs/ai/METRICS.md` records that training ran on the Brev GPU instance, with the instance
+  type and the dataset row counts.
 
 ### STEP 6 — ML models (Sunday 07:00–09:00)
 

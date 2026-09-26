@@ -60,3 +60,6 @@ backend/ai/data/raw/
 
 # Stray dataset downloads kept outside the repo tree (Engineer 1)
 DATESSSS/
+
+# Firas's dataset downloads (MetroPT-3, SKAB, Smoke, MITRE ICS) - kept out of git (Step 6 copies what it needs)
+Dataset/
