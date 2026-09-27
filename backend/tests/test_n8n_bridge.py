@@ -487,3 +487,124 @@ async def test_a_dead_resume_url_is_reported_cleanly_not_as_an_error():
     assert n8n_client.get_resume_url("INC-TEST") is None
     assert n8n_client.LAST_EXCHANGE["INC-TEST"]["status"] == "RESUME_URL_DROPPED"
     assert "already finished" in n8n_client.LAST_EXCHANGE["INC-TEST"]["detail"]
+
+
+# --------------------------------------------------------------------- LLM answer cache
+
+def test_a_live_llm_answer_is_cached_and_then_replayed_when_the_model_fails():
+    """live -> cached -> template. Measured need: 1 in 5 live Gemini attempts succeeded."""
+    from ai import llm_cache
+
+    llm_cache.clear()
+    try:
+        seed_incident()
+        live = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+            "what": "Hydraulic overpressure developing on M-04 in ZONE_B",
+            "why": ["M-04 pressure 8.32 bar over its 8.0 bar limit"],
+            "impact": "3 people exposed in ZONE_B",
+            "prediction": "Risk of hydraulic line rupture",
+            "recommended_action_ids": ["stop_machine", "evacuate_zone"],
+            "sources": [{"document": "SOP-M04", "section": "4.2"}],
+            "produced_by": "models/gemini-3.8-flash via n8n AI Agent",
+            "fallback": False,
+        }).json()
+        assert live["llm_path"] == "live"
+        assert llm_cache.recall("MACHINE_OVERHEATING") is not None
+
+        # Now the model fails: the workflow's template path reports fallback=True.
+        seed_incident()
+        replayed = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+            "what": "machine overheating affecting M-04 in ZONE_B",
+            "why": ["machine_agent: Warning threshold on M-04"],
+            "recommended_action_ids": ["stop_machine", "evacuate_zone", "activate_cooling"],
+            "produced_by": "n8n template (deterministic, no LLM)",
+            "fallback": True,
+        }).json()
+
+        assert replayed["llm_path"] == "cached"
+        assert "cached" in replayed["replayed_from"]
+
+        reasoning = state.incidents["INC-TEST"].ai_reasoning
+        assert "Hydraulic overpressure developing on M-04" in reasoning, "the LLM wording returns"
+        assert "SOP-M04 4.2" in reasoning, "so do its citations"
+        assert "cached models/gemini-3.8-flash" in reasoning
+        assert "answer from" in reasoning, "a replayed answer must be dated"
+    finally:
+        llm_cache.clear()
+
+
+def test_the_template_is_used_when_nothing_is_cached():
+    from ai import llm_cache
+
+    llm_cache.clear()
+    try:
+        seed_incident()
+        body = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+            "what": "machine overheating affecting M-04 in ZONE_B",
+            "why": ["machine_agent: pressure over the warning level"],
+            "recommended_action_ids": ["stop_machine"],
+            "produced_by": "n8n template (deterministic, no LLM)",
+            "fallback": True,
+        }).json()
+        assert body["llm_path"] == "template"
+        assert body["replayed_from"] is None
+        assert "template fallback" in state.incidents["INC-TEST"].ai_reasoning
+    finally:
+        llm_cache.clear()
+
+
+def test_a_cached_answer_cannot_smuggle_in_an_invalid_action():
+    """A stale cached id is re-validated against the catalogue like any other."""
+    from ai import llm_cache
+
+    llm_cache.clear()
+    try:
+        llm_cache.remember("MACHINE_OVERHEATING", {
+            "what": "cached wording", "why": ["cached why"], "impact": "cached impact",
+            "prediction": "cached prediction",
+            "recommended_action_ids": ["stop_machine", "launch_missiles", "close_door"],
+            "sources": [],
+        }, "models/gemini-3.8-flash")
+
+        seed_incident()
+        body = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+            "what": "template", "recommended_action_ids": ["stop_machine"],
+            "produced_by": "n8n template", "fallback": True,
+        }).json()
+
+        assert body["llm_path"] == "cached"
+        assert body["accepted_action_ids"] == ["stop_machine"]
+        rejected = {r["id"] for r in body["rejected"]}
+        assert "launch_missiles" in rejected, "not in the catalogue"
+        assert "close_door" in rejected, "not permitted for MACHINE_OVERHEATING"
+    finally:
+        llm_cache.clear()
+
+
+def test_a_cached_answer_never_carries_a_confidence_or_severity():
+    """Only wording and action ids are replayable; the numbers stay ours."""
+    from ai import llm_cache
+    assert "confidence" not in llm_cache.REPLAYABLE
+    assert "severity" not in llm_cache.REPLAYABLE
+    assert set(llm_cache.REPLAYABLE) == {
+        "what", "why", "impact", "prediction", "recommended_action_ids", "sources"}
+
+
+def test_a_corrupt_cache_file_does_not_break_enrichment():
+    from ai import llm_cache
+
+    llm_cache.clear()
+    try:
+        llm_cache.CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        llm_cache.CACHE_PATH.write_text("{ this is not json", encoding="utf-8")
+        llm_cache.reset_memory()
+        assert llm_cache.recall("MACHINE_OVERHEATING") is None
+
+        seed_incident()
+        body = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+            "what": "template", "recommended_action_ids": ["stop_machine"],
+            "produced_by": "n8n template", "fallback": True,
+        }).json()
+        assert body["llm_path"] == "template"
+    finally:
+        llm_cache.clear()

@@ -251,3 +251,57 @@ The nicer fix, if you have a spare minute:
 ```
 
 and count `['ACTIVE', 'ESCALATED'].includes(i.status)` for the header badge.
+
+---
+
+## P8 — `backend/iot/simulator.py` (Engineer 2) — richer cyber payloads for the Step 8 rules
+
+**Priority: low. The cyber demo works without this; these payloads would let the new rules fire
+live instead of only in tests.**
+
+`_tick_cyber()` emits one payload forever:
+
+```python
+data={"cyber_type": "UNAUTHORIZED_DEVICE", "device": "UNKNOWN-DEVICE-07",
+      "attempts": 47, "target": "Industrial Modbus Gateway (192.168.10.45)"}
+```
+
+The cyber agent now classifies that into **BRUTE_FORCE** (47 ≥ 20 failed auths in 60 s) and
+**UNKNOWN_DEVICE** (not in the asset inventory), attributed to `T0806 Brute Force I/O` and
+`T0848 Rogue Master`. A test locks that in, so **this payload must keep working**.
+
+Four more rules exist and cannot fire from the simulator yet. Any of these, cycled by
+`scenario_step`, would exercise them:
+
+```python
+# UNAUTHORIZED_COMMAND -> T1692 Unauthorized Message  (severity CRITICAL)
+{"cyber_type": "UNAUTHORIZED_COMMAND", "device": "UNKNOWN-DEVICE-07",
+ "source": "10.0.0.66", "command": "write_setpoint", "target": "PLC-B-01"}
+
+# SPOOFED_SENSOR -> T1692.002 Reporting Message  (severity CRITICAL) -- the flagship
+{"cyber_type": "SPOOFED_SENSOR", "device": "UNKNOWN-DEVICE-07",
+ "sensor_id": "TEMP-B-01", "target": "TEMP-B-01"}
+
+# TRAFFIC_ANOMALY -> T0842 Network Sniffing  (severity WARNING)
+{"cyber_type": "TRAFFIC_ANOMALY", "device": "SWITCH-CORE-01",
+ "source": "10.0.0.66", "traffic_z": 4.2}
+
+# CREDENTIAL_ABUSE -> T0859 Valid Accounts  (severity HIGH)
+{"cyber_type": "VALID_ACCOUNTS", "device": "ENG-WS-01", "source": "ENG-WS-01",
+ "valid_account_misuse": True, "target": "PLC-B-01"}
+```
+
+### The one that is worth the most on stage
+
+**`SPOOFED_SENSOR` while `machine_overheating` is running.** The cyber agent distrusts
+`TEMP-B-01` (trust 0.2, `OT-CYBER-PB §4.2`), and the machine hazard is *still* detected as
+CRITICAL because M-04's own pressure and body temperature are independent of the spoofed ambient
+sensor. The incident text then carries a `TRUST:` line naming the down-weighted sensor. That is
+one agent changing how another reasons, visible on screen.
+
+It also works with **no new payload at all**: the agent cross-checks any cyber event that names a
+`sensor_id`, so a spoof is detected when an ambient sensor sits at baseline while the machine in
+its zone is past its own temperature limit. To drive it live, the cyber scenario only needs to run
+*while* the overheating scenario is active, or emit the `SPOOFED_SENSOR` payload above.
+
+Nothing on Engineer 1's side needs changing when this lands — the rules are already there.

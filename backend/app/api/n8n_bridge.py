@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ai import n8n_client
+from ai import llm_cache, n8n_client
 from ai.actions_catalog import CATALOG, context_from_incident, validate_action_ids
 from app.models.schemas import Action, ActionStatus, Severity
 from app.services.event_bus import event_bus
@@ -121,11 +121,38 @@ def _existing_action_types(incident_id: str) -> set:
 async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
     incident = _incident_or_404(incident_id)
 
-    validation = validate_action_ids(body.recommended_action_ids, incident)
+    # ---- live LLM -> cached LLM -> template ------------------------------------------------
+    # The workflow tells us which path produced this: `fallback=True` means its AI Agent errored
+    # and the deterministic template ran. In that case, if we have a real LLM answer for this
+    # hazard type from an earlier run, replay it instead — clearly labelled and dated, never
+    # passed off as live. Measured need: only 1 in 5 live Gemini attempts succeeded
+    # (docs/ai/METRICS.md §2).
+    fields = {
+        "what": body.what, "why": list(body.why), "impact": body.impact,
+        "prediction": body.prediction,
+        "recommended_action_ids": list(body.recommended_action_ids),
+        "sources": list(body.sources),
+    }
+    provenance_source = "template fallback" if body.fallback else body.produced_by
+    replayed_from = None
+
+    if body.fallback:
+        cached = llm_cache.recall(incident.type)
+        if cached:
+            fields = {field: cached.get(field) or fields[field] for field in fields}
+            replayed_from = llm_cache.describe(cached)
+            provenance_source = replayed_from
+    else:
+        # A genuinely live answer: keep it for the next time the model is unavailable.
+        llm_cache.remember(incident.type, fields, body.produced_by)
+    # ----------------------------------------------------------------------------------------
+
+    validation = validate_action_ids(fields["recommended_action_ids"], incident)
     accepted = validation["accepted"]
     rejected = validation["rejected"]
 
     resume_url = n8n_client.register_resume_url(incident_id, body.resume_url)
+    proposed_count = len(fields["recommended_action_ids"])
 
     # Any accepted action the plant is not already holding becomes a real pending action,
     # with the catalogue's risk level — not the model's opinion of it.
@@ -154,21 +181,22 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
 
     # Rebuild the explanation. Confidence stays ours: it comes from sensor fusion, not the LLM.
     todo = "; ".join(e.label.format(target=e.resolve_target(context), zone=incident.zone) for e in accepted)
-    sources_text = _format_sources(body.sources)
-    why_lines = " ".join(f"{i + 1}) {w}" for i, w in enumerate(body.why)) or "No corroborating detail supplied."
+    sources_text = _format_sources(fields["sources"])
+    why_lines = " ".join(f"{i + 1}) {w}" for i, w in enumerate(fields["why"] or [])) \
+        or "No corroborating detail supplied."
     provenance = (
-        f"{'template fallback' if body.fallback else body.produced_by}; "
-        f"{len(accepted)} of {len(body.recommended_action_ids)} proposed action(s) validated against the catalogue"
+        f"{provenance_source}; "
+        f"{len(accepted)} of {proposed_count} proposed action(s) validated against the catalogue"
         + (f", rejected: {', '.join(r['id'] for r in rejected)}" if rejected else "")
     )
 
     incident.ai_reasoning = (
-        f"WHAT: {body.what or incident.type.replace('_', ' ').title()}\n"
+        f"WHAT: {fields['what'] or incident.type.replace('_', ' ').title()}\n"
         f"WHY: {why_lines}\n"
         f"HOW CONFIDENT: {incident.confidence * 100:.0f}% from sensor fusion at detection time "
         f"(the language model does not set this figure) — a risk assessment, not a certainty.\n"
-        f"WHAT IMPACT: {body.impact or 'Not supplied.'}\n"
-        f"PREDICTION: {body.prediction or 'Not supplied.'}\n"
+        f"WHAT IMPACT: {fields['impact'] or 'Not supplied.'}\n"
+        f"PREDICTION: {fields['prediction'] or 'Not supplied.'}\n"
         f"WHAT TO DO: {todo or 'No validated action — the deterministic recommendations stand.'}\n"
         f"WHO APPROVES: {'Owner confirmation required for ' + ', '.join(e.id for e in accepted if e.requires_confirmation) if any(e.requires_confirmation for e in accepted) else 'No confirmation-gated action proposed.'}\n"
         f"SOURCES: {sources_text or 'none cited'}\n"
@@ -203,6 +231,9 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
 
     return {
         "incident_id": incident_id,
+        "llm_path": ("live" if not body.fallback else
+                     ("cached" if replayed_from else "template")),
+        "replayed_from": replayed_from,
         "accepted_action_ids": [e.id for e in accepted],
         "rejected": rejected,
         "actions_created": added,
@@ -429,6 +460,14 @@ def rag_search(q: str, hazard: Optional[str] = None, limit: int = 4):
             for h in hits
         ],
     }
+
+
+# ----------------------------------------------------------------- LLM answer cache
+
+@router.get("/llm-cache")
+def llm_cache_status():
+    """What LLM answers are cached, per hazard type, and when they were captured."""
+    return llm_cache.status()
 
 
 # ----------------------------------------------------------------- introspection

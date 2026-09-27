@@ -566,3 +566,78 @@ that imported them broke.
 
 **Acceptance:** **81 pytest tests** (17 new), `e2e_test.py` **15/15**, `gate1_verify.py` **13/13**,
 and confidence demonstrably varies with the evidence.
+
+---
+
+## Item 3 — LLM reliability: live → cached → template (2026-09-27 ~11:20)
+
+Implemented in the backend bridge, not in n8n: the enrichment endpoint already sees every LLM
+answer, so it is the natural place, it needs no workflow change, and it can persist to disk.
+
+`backend/ai/llm_cache.py` keyed by **incident type** (two overheating incidents are the same
+explanation problem, and the point is to have an answer ready *before* the incident that needs it
+exists). The workflow already tells us which path produced an enrichment via `fallback`, so:
+
+- `fallback=False` → a genuinely live answer: store it.
+- `fallback=True` → if a live answer for this hazard type exists, replay it; otherwise template.
+
+The replay is **always labelled and dated** — `— enriched by cached models/gemini-3.8-flash answer
+from 2026-09-27T11:05:12` — so a cached answer can never be mistaken for a live one. Only wording
+and action ids are replayable: `REPLAYABLE` excludes confidence and severity, which stay ours, and
+a test asserts that. Cached action ids are **re-validated against the catalogue**, so a stale id is
+rejected rather than trusted (also tested, with `launch_missiles` and a wrong-hazard `close_door`).
+
+`GET /api/ai/n8n/llm-cache` shows what is cached. `n8n/warm_llm_cache.py` captures one live answer
+per hazard type, retrying and waiting out the 5-per-minute quota.
+
+**On the second provider question:** yes, worth it, and Groq is the right choice. Its free tier
+allows far more requests per minute than Gemini's 5, it is OpenAI-compatible so n8n's *OpenAI Chat
+Model* node works by just setting a custom base URL (`https://api.groq.com/openai/v1`), and it
+needs no new node type. That would make the chain **Groq → Gemini → cached → template**, and the
+agent node's error output already gives us the wiring point. If you get a key it is about 10
+minutes of work.
+
+## Step 8 — DONE, simplified as agreed (2026-09-27 ~11:20)
+
+`cyber_agent.py` rewritten. It used to flag **every** `CYBER_EVENT` as HIGH with no rules and
+hardcoded defaults (`attempts=47`).
+
+**Rules, each with its evidence:** `BRUTE_FORCE` (≥20 failed auths from one source in a rolling
+60 s window, `OT-CYBER-PB §2.2`), `UNKNOWN_DEVICE` (not in the asset inventory, which is read from
+the state store), `UNAUTHORIZED_COMMAND` (control command from outside the engineering whitelist),
+`TRAFFIC_ANOMALY` (traffic z-score ≥ 3), `CREDENTIAL_ABUSE`, `SPOOFED_SENSOR`. An event that
+matches nothing says *"no rule matched"* rather than inventing a verdict.
+
+**ATT&CK for ICS attribution is looked up in the bundle**, never from memory
+(`backend/ai/mitre_ics.py`). This immediately paid off: the ids most ICS material still quotes,
+**`T0855 Unauthorized Command Message` and `T0856 Spoof Reporting Message`, are `revoked=1` in the
+current bundle** — superseded by `T1692 Unauthorized Message` with `T1692.001 Command Message` and
+`T1692.002 Reporting Message`. Quoting T0855 today would have been wrong. Resolved live:
+
+| Rule | Technique, from the file |
+|---|---|
+| BRUTE_FORCE | `T0806 Brute Force I/O` |
+| UNKNOWN_DEVICE | `T0848 Rogue Master` |
+| UNAUTHORIZED_COMMAND | `T1692 Unauthorized Message` |
+| SPOOFED_SENSOR | `T1692.002 Reporting Message` |
+| TRAFFIC_ANOMALY | `T0842 Network Sniffing` |
+| CREDENTIAL_ABUSE | `T0859 Valid Accounts` |
+
+With no bundle on disk the attribution is simply omitted — never guessed.
+
+**The flagship — one agent changing how another reasons.** On `SPOOFED_SENSOR` the cyber agent
+calls `risk_engine.set_trust(sensor_id, 0.2, reason)`. Its decision text reads
+`DISTRUST TEMP-B-01 …`, which is what appears in `state.agent_logs` on the multi-agent page, and
+the incident explanation gains a `TRUST:` line naming the down-weighted sensor and why. An
+end-to-end test proves the machine overheating is **still** graded CRITICAL with the ambient sensor
+spoofed, because M-04's pressure and body temperature are independent of it (`OT-CYBER-PB §4.3`).
+
+It also detects a spoof **without being told**: any cyber event naming a `sensor_id` triggers a
+cross-check, and an ambient sensor at baseline while the machine in its zone is past its
+temperature limit is flagged.
+
+**The existing simulator payload still classifies** (BRUTE_FORCE + UNKNOWN_DEVICE, HIGH) — a test
+locks that in so the cyber demo cannot regress. Extra payloads for Engineer 2 are written up as
+**P8**; until then the rules are covered by 15 synthetic-event tests.
+
+**114 pytest tests pass** (20 new for items 3 and 4).
