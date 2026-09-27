@@ -31,8 +31,15 @@ OUT_INGEST = HERE / "rag_ingestion.json"
 #: Shared between the ingestion workflow and the retriever tool, so both address the same store.
 MEMORY_KEY = "copilot_procedures"
 
-GEMINI_CHAT_MODEL = "models/gemini-2.0-flash"
-GEMINI_EMBEDDING_MODEL = "models/text-embedding-004"
+# Corrected on 2026-09-27 from what actually works with Firas's key (his UI fixes, then
+# exported back into the repo — the export is authoritative, this generator only bootstraps).
+# gemini-2.5-flash returned 404 "no longer available to new users"; Google named
+# gemini-3.8-flash as the replacement.
+GEMINI_CHAT_MODEL = "models/gemini-3.8-flash"
+# The embeddings node's own default is already models/gemini-embedding-001, and n8n omits
+# parameters equal to their default when exporting. Leaving modelName unset keeps the generated
+# file byte-identical to the export instead of churning the diff on every round trip.
+# models/text-embedding-004 was NOT available for this key.
 
 
 def nid(name: str) -> str:
@@ -48,6 +55,7 @@ PARSER = "Structured Output Parser"
 TOOL_HTTP = "Procedure search (backend RAG)"
 TOOL_VECTOR = "Procedure search (vector store)"
 VECTOR_RETRIEVER = "Simple Vector Store (retrieve)"
+TOOL_VECTOR_MODEL = "Google Gemini Chat Model1"   # the tool's own required model
 EMBEDDINGS_RETRIEVE = "Embeddings Gemini (retrieve)"
 FALLBACK = "Template recommendation (LLM unavailable)"
 VALIDATE = "Validate against allowed_actions"
@@ -303,7 +311,7 @@ def build_v2():
                 "promptType": "define",
                 "text": "={{ $json.prompt }}",
                 "hasOutputParser": True,
-                "options": {"systemMessage": SYSTEM_MESSAGE},
+                "options": {"systemMessage": SYSTEM_MESSAGE, "maxIterations": 3},
             },
             "id": nid(AGENT), "name": AGENT,
             "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 2.2,
@@ -372,10 +380,18 @@ def build_v2():
             "position": [560, 760],
         },
         {
-            "parameters": {"modelName": GEMINI_EMBEDDING_MODEL},
+            "parameters": {},   # modelName defaults to models/gemini-embedding-001
             "id": nid(EMBEDDINGS_RETRIEVE), "name": EMBEDDINGS_RETRIEVE,
             "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini", "typeVersion": 1,
             "position": [560, 960],
+        },
+        {
+            # The vector-store TOOL requires its own language model to summarise retrieved
+            # chunks — n8n flags it red without one. Same credential and model as the agent.
+            "parameters": {"modelName": GEMINI_CHAT_MODEL, "options": {}},
+            "id": nid(TOOL_VECTOR_MODEL), "name": TOOL_VECTOR_MODEL,
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini", "typeVersion": 1.1,
+            "position": [780, 760],
         },
         code_node(FALLBACK, FALLBACK_CODE, [200, 120]),
         code_node(VALIDATE, VALIDATE_CODE, [420, 300]),
@@ -456,6 +472,7 @@ def build_v2():
         TOOL_HTTP: {"ai_tool": [ai_link(AGENT, "ai_tool")]},
         TOOL_VECTOR: {"ai_tool": [ai_link(AGENT, "ai_tool")]},
         VECTOR_RETRIEVER: {"ai_vectorStore": [ai_link(TOOL_VECTOR, "ai_vectorStore")]},
+        TOOL_VECTOR_MODEL: {"ai_languageModel": [ai_link(TOOL_VECTOR, "ai_languageModel")]},
         EMBEDDINGS_RETRIEVE: {"ai_embedding": [ai_link(VECTOR_RETRIEVER, "ai_embedding")]},
     }
 
@@ -516,7 +533,7 @@ def build_ingestion(backend_base="http://127.0.0.1:8000"):
             "position": [340, 300],
         },
         {
-            "parameters": {"modelName": GEMINI_EMBEDDING_MODEL},
+            "parameters": {},   # modelName defaults to models/gemini-embedding-001
             "id": nid(INGEST_EMBED), "name": INGEST_EMBED,
             "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini", "typeVersion": 1,
             "position": [240, 520],

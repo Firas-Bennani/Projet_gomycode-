@@ -9,12 +9,11 @@
       "typeVersion": 1,
       "position": [
         -320,
-        300
+        304
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "http://127.0.0.1:8000/api/ai/n8n/corpus",
         "options": {}
       },
@@ -23,8 +22,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -100,
-        300
+        -96,
+        304
       ]
     },
     {
@@ -36,8 +35,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        120,
-        300
+        128,
+        304
       ]
     },
     {
@@ -55,26 +54,29 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
       "typeVersion": 1.2,
       "position": [
-        340,
-        300
+        352,
+        304
       ]
     },
     {
-      "parameters": {
-        "modelName": "models/text-embedding-004"
-      },
+      "parameters": {},
       "id": "d073d347-681f-5867-aa9e-a9313d306c85",
       "name": "Embeddings Gemini (insert)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
         240,
-        520
-      ]
+        528
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BtJMoYct0kxR6KxY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
-        "dataType": "json",
         "jsonMode": "expressionData",
         "jsonData": "={{ $json.text }}",
         "textSplittingMode": "custom",
@@ -106,8 +108,8 @@
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
       "position": [
-        460,
-        520
+        464,
+        528
       ]
     },
     {
@@ -121,7 +123,7 @@
       "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
       "typeVersion": 1,
       "position": [
-        620,
+        624,
         720
       ]
     }
@@ -195,7 +197,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
-  },
-  "pinData": {}
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
 }

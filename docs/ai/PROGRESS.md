@@ -458,3 +458,69 @@ package on disk (`agent` supports up to 3.1, using 2.2; `lmChatGoogleGemini` 1.1
 ### Blocked on
 
 The Gemini credential, which only exists inside n8n. Until it is added, v2 cannot be activated.
+
+---
+
+## 🚩 GATE 1 — PASSED (confirmed in the real UI by Firas, 2026-09-27)
+
+Actions appear without F5 · AUTHORIZE `STOP_MACHINE` → incident RESOLVED · the other cards
+cancel as superseded · M-04 returns to baseline · no new incident opens · n8n execution green.
+Tagged `gate1`, pushed.
+
+## Step 5 — DONE and live (2026-09-27 ~07:20)
+
+`Incident Response v2 (Gemini + RAG)` is the **active** workflow; v1 is inactive and kept as the
+manual fallback.
+
+### Firas's UI fixes, now captured in the repo
+
+Exported the live workflows with `n8n/export_workflows.py`, so `n8n/workflows/*.json` match the
+UI exactly, and verified **export → import → export is byte-identical** (idempotent) with the
+credentials still attached. `_generate_v2.py` was synced to match so regenerating cannot undo
+the fixes. What changed from my generated version:
+
+- `models/text-embedding-004` → **`models/gemini-embedding-001`** on both embedding nodes. It
+  turns out that is the node's own default, which is why n8n omits it from the export.
+- a **second Gemini chat model node** (`Google Gemini Chat Model1`) wired into
+  `Procedure search (vector store)` — the vector-store *tool* needs its own model and n8n flags
+  it red without one. I had missed that; it is now in the generator too.
+
+### Two model problems found by running it, and fixed
+
+1. `models/gemini-2.5-flash` returns **404 "no longer available to new users"**; Google names
+   `models/gemini-3.8-flash` as the replacement. Both chat nodes switched.
+2. The agent was too chatty for the free tier: each tool call costs a model call and the
+   vector-store tool spends one of its own, so it made 6+ calls and hit **429 (limit: 5
+   requests/minute)**. Added a hard budget instruction to the system prompt ("call
+   procedure_search exactly once") and `maxIterations: 3`. Usage is now 2–3 calls.
+3. Also fixed a stale label: `produced_by` reported `gemini-2.0-flash`, a string baked in when
+   the file was first generated.
+
+### Result — see `docs/ai/METRICS.md` for the full table
+
+**The LLM path works and is well grounded when Google serves it:** 37.7 s, reasoning quoting the
+real readings, citing `SOP-M04 §4.1` and `§2`. It correctly cited the *warning-level* section
+because the readings were at warning level.
+
+**But 4 of 5 attempts fell back**, on three distinct Google-side failures — 404 (model retired),
+429 (free-tier quota), 503 (model overloaded) — plus the deliberate `--break` test. In **5 of 5**
+runs the system still produced 3 validated actions, ran the approval flow, verified and resolved
+the incident. The fallback is not theoretical; it carried four real failures tonight.
+
+**Conclusion for the demo:** do not let the demo depend on Gemini. This is the strongest argument
+for Step 5b putting NVIDIA NIM on Brev first in the chain, with Gemini second and the template
+last — which is what was already planned.
+
+### Operational note now documented
+
+The Simple Vector Store is in memory and says so: *"data will be lost if n8n restarts, and may
+be cleared if available memory gets low"*. `n8n/README.md` §4b tells the operator to re-run the
+ingestion after any restart, and a **pre-demo checklist** was added covering that, the one-active
+-workflow rule, the 60 s gap between scenarios for the Gemini quota, and RAM.
+
+### Known behaviour worth knowing on stage
+
+The LLM's `WHAT TO DO` line lists only the actions **it** selected, while the Command Center
+shows the union of the deterministic recommendations and anything the LLM added. So the card can
+read "Engage auxiliary cooling" while three action cards are pending. That is the safety property
+working — the model can add to, but never remove, a deterministic recommendation.

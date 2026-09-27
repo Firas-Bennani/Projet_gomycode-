@@ -2,94 +2,106 @@
   "name": "Incident Response v2 (Gemini + RAG)",
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "incident",
-        "responseMode": "onReceived",
-        "options": {}
-      },
       "id": "e7b266c6-d3fb-5c94-a588-4468c8f3309c",
       "name": "Incident webhook",
+      "webhookId": "8703d01d-a5d5-58c0-90f8-ef789de672ef",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -460,
-        300
+        -464,
+        304
       ],
-      "webhookId": "8703d01d-a5d5-58c0-90f8-ef789de672ef"
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident",
+        "options": {}
+      }
     },
     {
-      "parameters": {
-        "jsCode": "// Flatten the incident into one compact prompt, and keep the fields the rest of the workflow\n// needs. Everything the agent is allowed to choose from is listed explicitly.\nconst input = $input.first().json;\nconst payload = input.body || input;\nconst incident = payload.incident || {};\nconst allowed = payload.allowed_actions || [];\nconst evidence = payload.evidence || [];\nconst workers = payload.workers || [];\n\nconst allowedLines = allowed.map(a =>\n  `- id: ${a.id} | ${a.label} | target ${a.target} | risk ${a.risk}` +\n  `${a.requires_confirmation ? ' | needs owner approval' : ' | automatic'}`).join('\\n');\n\nconst prompt = [\n  `INCIDENT ${payload.incident_id}`,\n  `type: ${incident.type}`,\n  `zone: ${incident.zone}`,\n  `severity at detection: ${incident.severity}`,\n  `fused confidence: ${Math.round((incident.confidence || 0) * 100)}% (set by sensor fusion, not by you)`,\n  `affected assets: ${(incident.affected_assets || []).join(', ') || 'none recorded'}`,\n  `people in the zone: ${workers.length ? workers.map(w => `${w.id} (${w.role})`).join(', ') : 'none detected'}`,\n  '',\n  'EVIDENCE (the only readings you may quote):',\n  ...evidence.map(e => `- ${e.source}: ${e.detail}`),\n  '',\n  'allowed_actions (choose ids from this list only):',\n  allowedLines || '- (none)',\n].join('\\n');\n\nreturn [{\n  json: {\n    incident_id: payload.incident_id,\n    backend_base_url: payload.backend_base_url,\n    allowed_action_ids: allowed.map(a => a.id),\n    incident_type: incident.type,\n    prompt,\n  },\n}];"
-      },
       "id": "fb5307c2-de66-5679-8300-473e1f0f9b9c",
       "name": "Build agent input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -240,
-        300
-      ]
+        304
+      ],
+      "parameters": {
+        "jsCode": "// Flatten the incident into one compact prompt, and keep the fields the rest of the workflow\n// needs. Everything the agent is allowed to choose from is listed explicitly.\nconst input = $input.first().json;\nconst payload = input.body || input;\nconst incident = payload.incident || {};\nconst allowed = payload.allowed_actions || [];\nconst evidence = payload.evidence || [];\nconst workers = payload.workers || [];\n\nconst allowedLines = allowed.map(a =>\n  `- id: ${a.id} | ${a.label} | target ${a.target} | risk ${a.risk}` +\n  `${a.requires_confirmation ? ' | needs owner approval' : ' | automatic'}`).join('\\n');\n\nconst prompt = [\n  `INCIDENT ${payload.incident_id}`,\n  `type: ${incident.type}`,\n  `zone: ${incident.zone}`,\n  `severity at detection: ${incident.severity}`,\n  `fused confidence: ${Math.round((incident.confidence || 0) * 100)}% (set by sensor fusion, not by you)`,\n  `affected assets: ${(incident.affected_assets || []).join(', ') || 'none recorded'}`,\n  `people in the zone: ${workers.length ? workers.map(w => `${w.id} (${w.role})`).join(', ') : 'none detected'}`,\n  '',\n  'EVIDENCE (the only readings you may quote):',\n  ...evidence.map(e => `- ${e.source}: ${e.detail}`),\n  '',\n  'allowed_actions (choose ids from this list only):',\n  allowedLines || '- (none)',\n].join('\\n');\n\nreturn [{\n  json: {\n    incident_id: payload.incident_id,\n    backend_base_url: payload.backend_base_url,\n    allowed_action_ids: allowed.map(a => a.id),\n    incident_type: incident.type,\n    prompt,\n  },\n}];"
+      }
     },
     {
+      "id": "b950dce4-7d3d-591f-a49a-5bda4893719e",
+      "name": "Recommendation AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "onError": "continueErrorOutput",
+      "position": [
+        -16,
+        304
+      ],
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.prompt }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "You are the recommendation agent of an industrial safety copilot. A deterministic detection layer has already decided that an incident exists and how confident it is. Your job is only to explain it and to choose the response from a fixed catalogue.\n\nHard rules:\n1. Choose actions ONLY by copying ids from the allowed_actions list in the user message. Never invent an id, never invent an action, never describe an action that is not in that list. Ids you make up are rejected by the backend and wasted.\n2. You do NOT set risk levels, you do NOT decide what needs human approval, and you do NOT set the confidence figure. Those come from the catalogue and from sensor fusion.\n3. Cite the procedure sections you actually retrieved, using the citation string the tool returns (for example \"SOP-M04 \u00a74.2\"). If you retrieved nothing, return an empty sources array. Never cite a section you did not retrieve.\n4. Quote the real readings from the evidence. Never introduce numbers that are not in the input.\n5. Never claim certainty. Write \"risk of\", \"expected to\", \"consistent with\". A prediction is a risk assessment, not a fact.\n6. Always search the procedures before recommending. Use procedure_search; you may also use procedure_vector_search. Prefer the order of actions the procedure specifies.\n\nUse the tools, then answer with the structured object only.\n\nExample of a good answer for a machine overheating incident:\n{\"what\":\"Hydraulic overpressure and over-temperature developing on M-04 in ZONE_B\",\"why\":[\"M-04 pressure 8.32 bar, over its 8.0 bar operating limit\",\"M-04 body temperature 82.9 \u00b0C, at or over its 80 \u00b0C limit\",\"Ambient TEMP-B-01 at 47.9 \u00b0C against a 50 \u00b0C critical threshold\"],\"impact\":\"3 people exposed in ZONE_B (W23, W41, W52) and unplanned loss of M-04\",\"prediction\":\"Risk of hydraulic line rupture and spindle seizure if the trend continues\",\"recommended_action_ids\":[\"stop_machine\",\"evacuate_zone\",\"activate_cooling\"],\"sources\":[{\"document\":\"SOP-M04\",\"section\":\"\u00a74.2\"},{\"document\":\"EVAC-PROC\",\"section\":\"\u00a72\"}]}"
+          "systemMessage": "You are the recommendation agent of an industrial safety copilot. A deterministic detection layer has already decided that an incident exists and how confident it is. Your job is only to explain it and to choose the response from a fixed catalogue.\n\nHard rules:\n1. Choose actions ONLY by copying ids from the allowed_actions list in the user message. Never invent an id, never invent an action, never describe an action that is not in that list. Ids you make up are rejected by the backend and wasted.\n2. You do NOT set risk levels, you do NOT decide what needs human approval, and you do NOT set the confidence figure. Those come from the catalogue and from sensor fusion.\n3. Cite the procedure sections you actually retrieved, using the citation string the tool returns (for example \"SOP-M04 \u00a74.2\"). If you retrieved nothing, return an empty sources array. Never cite a section you did not retrieve.\n4. Quote the real readings from the evidence. Never introduce numbers that are not in the input.\n5. Never claim certainty. Write \"risk of\", \"expected to\", \"consistent with\". A prediction is a risk assessment, not a fact.\n6. Always search the procedures before recommending. Use procedure_search; you may also use procedure_vector_search. Prefer the order of actions the procedure specifies.\n\nUse the tools, then answer with the structured object only.\n\nExample of a good answer for a machine overheating incident:\n{\"what\":\"Hydraulic overpressure and over-temperature developing on M-04 in ZONE_B\",\"why\":[\"M-04 pressure 8.32 bar, over its 8.0 bar operating limit\",\"M-04 body temperature 82.9 \u00b0C, at or over its 80 \u00b0C limit\",\"Ambient TEMP-B-01 at 47.9 \u00b0C against a 50 \u00b0C critical threshold\"],\"impact\":\"3 people exposed in ZONE_B (W23, W41, W52) and unplanned loss of M-04\",\"prediction\":\"Risk of hydraulic line rupture and spindle seizure if the trend continues\",\"recommended_action_ids\":[\"stop_machine\",\"evacuate_zone\",\"activate_cooling\"],\"sources\":[{\"document\":\"SOP-M04\",\"section\":\"\u00a74.2\"},{\"document\":\"EVAC-PROC\",\"section\":\"\u00a72\"}]}\n\nBUDGET \u2014 this matters. You are running on a rate-limited free tier (5 model calls per minute).\nEvery tool call costs a model call. So:\n- Call procedure_search EXACTLY ONCE, with one good query naming the hazard and the asset.\n- Do NOT call procedure_vector_search unless procedure_search returned nothing usable.\n- Then answer. Do not re-search to double-check, and do not call a tool after you already have\n  the sections you need.",
+          "maxIterations": 3
         }
-      },
-      "id": "b950dce4-7d3d-591f-a49a-5bda4893719e",
-      "name": "Recommendation AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.2,
-      "position": [
-        -20,
-        300
-      ],
-      "onError": "continueErrorOutput"
+      }
     },
     {
-      "parameters": {
-        "modelName": "models/gemini-2.0-flash",
-        "options": {
-          "temperature": 0.2
-        }
-      },
       "id": "7919ac93-a4d5-5779-a76e-5edcec6ea76a",
       "name": "Google Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        -120,
-        540
-      ]
+        -128,
+        544
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BtJMoYct0kxR6KxY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
-      "parameters": {
-        "jsonSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"what\",\n    \"why\",\n    \"impact\",\n    \"prediction\",\n    \"recommended_action_ids\",\n    \"sources\"\n  ],\n  \"properties\": {\n    \"what\": {\n      \"type\": \"string\",\n      \"description\": \"One sentence naming the hazard, the asset and the zone.\"\n    },\n    \"why\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Each corroborating reading, quoting the actual value and its threshold.\"\n    },\n    \"impact\": {\n      \"type\": \"string\",\n      \"description\": \"Who and what is at risk, with the worker count.\"\n    },\n    \"prediction\": {\n      \"type\": \"string\",\n      \"description\": \"What happens without intervention. Phrase as a risk, never as a certainty.\"\n    },\n    \"recommended_action_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Ids copied EXACTLY from allowed_actions. Never invent an id.\"\n    },\n    \"sources\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"document\": {\n            \"type\": \"string\"\n          },\n          \"section\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"description\": \"Procedure sections actually retrieved, e.g. SOP-M04 \\u00a74.2.\"\n    }\n  }\n}"
-      },
       "id": "aa365f2c-3035-5ef0-8fb0-c59ed9b8aa6d",
       "name": "Structured Output Parser",
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.1,
       "position": [
-        140,
-        540
-      ]
+        144,
+        544
+      ],
+      "parameters": {
+        "jsonSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"what\",\n    \"why\",\n    \"impact\",\n    \"prediction\",\n    \"recommended_action_ids\",\n    \"sources\"\n  ],\n  \"properties\": {\n    \"what\": {\n      \"type\": \"string\",\n      \"description\": \"One sentence naming the hazard, the asset and the zone.\"\n    },\n    \"why\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Each corroborating reading, quoting the actual value and its threshold.\"\n    },\n    \"impact\": {\n      \"type\": \"string\",\n      \"description\": \"Who and what is at risk, with the worker count.\"\n    },\n    \"prediction\": {\n      \"type\": \"string\",\n      \"description\": \"What happens without intervention. Phrase as a risk, never as a certainty.\"\n    },\n    \"recommended_action_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Ids copied EXACTLY from allowed_actions. Never invent an id.\"\n    },\n    \"sources\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"document\": {\n            \"type\": \"string\"\n          },\n          \"section\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"description\": \"Procedure sections actually retrieved, e.g. SOP-M04 \\u00a74.2.\"\n    }\n  }\n}"
+      }
     },
     {
+      "id": "1fa63b4b-9569-50f4-a968-245ceaaa1bb4",
+      "name": "Procedure search (backend RAG)",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        544
+      ],
       "parameters": {
         "toolDescription": "Search the plant's written procedures (SOP-M04, FIRE-EP-03, EVAC-PROC, OT-CYBER-PB, MAINT-PLAN) and return the matching sections with their citation strings. Always use this before recommending actions. Input: a short query describing the hazard.",
         "url": "={{ $('Build agent input').first().json.backend_base_url }}/api/ai/n8n/rag",
         "sendQuery": true,
-        "specifyQuery": "keypair",
         "parametersQuery": {
           "values": [
             {
-              "name": "q",
-              "valueProvider": "modelRequired"
+              "name": "q"
             },
             {
               "name": "hazard",
@@ -102,55 +114,40 @@
               "value": "4"
             }
           ]
-        },
-        "options": {}
-      },
-      "id": "1fa63b4b-9569-50f4-a968-245ceaaa1bb4",
-      "name": "Procedure search (backend RAG)",
-      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
-      "typeVersion": 1.1,
-      "position": [
-        340,
-        540
-      ]
+        }
+      }
     },
     {
-      "parameters": {
-        "name": "procedure_vector_search",
-        "description": "Semantic search over the same procedure corpus, using the in-memory vector store. May be empty if n8n restarted; if it returns nothing useful, use procedure_search instead.",
-        "topK": 4
-      },
       "id": "08ef0ffd-61a9-5187-a501-8fa72fe9a9eb",
       "name": "Procedure search (vector store)",
       "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
       "typeVersion": 1.1,
       "position": [
         560,
-        540
-      ]
+        544
+      ],
+      "parameters": {
+        "description": "Semantic search over the same procedure corpus, using the in-memory vector store. May be empty if n8n restarted; if it returns nothing useful, use procedure_search instead."
+      }
     },
     {
-      "parameters": {
-        "mode": "retrieve",
-        "memoryKey": {
-          "__rl": true,
-          "mode": "id",
-          "value": "copilot_procedures"
-        }
-      },
       "id": "64b140dc-6b03-54e7-9f7d-18ed534d9e82",
       "name": "Simple Vector Store (retrieve)",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
       "typeVersion": 1.2,
       "position": [
         560,
-        760
-      ]
+        768
+      ],
+      "parameters": {
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "copilot_procedures"
+        }
+      }
     },
     {
-      "parameters": {
-        "modelName": "models/text-embedding-004"
-      },
       "id": "ccc7ed1a-2e7e-58e9-bf01-6a38da2e3d44",
       "name": "Embeddings Gemini (retrieve)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
@@ -158,73 +155,87 @@
       "position": [
         560,
         960
-      ]
+      ],
+      "parameters": {},
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BtJMoYct0kxR6KxY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
-      "parameters": {
-        "jsCode": "\n// The AI Agent's error output lands here: no credential, quota exhausted, malformed structured\n// output, or the model simply unavailable. Produce exactly the same shape deterministically so\n// the rest of the workflow cannot tell the difference. This is v1's behaviour.\nconst src = $('Incident webhook').first().json.body;\nconst incident = src.incident || {};\nconst allowed = src.allowed_actions || [];\nconst evidence = src.evidence || [];\nconst workers = src.workers || [];\n\nconst allowedIds = allowed.map(a => a.id);\nconst byHazard = {\n  MACHINE_OVERHEATING: ['stop_machine', 'evacuate_zone', 'activate_cooling'],\n  INDUSTRIAL_FIRE: ['trigger_alarm', 'evacuate_zone', 'close_door', 'activate_suppression'],\n  CYBER_INTRUSION: ['vlan_quarantine', 'isolate_device'],\n};\nconst chosen = (byHazard[incident.type] || allowedIds).filter(id => allowedIds.includes(id));\nconst hazard = String(incident.type || 'hazard').replace(/_/g, ' ').toLowerCase();\nconst assets = (incident.affected_assets || []).join(', ') || 'the affected zone';\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    allowed_action_ids: allowedIds,\n    what: `${hazard} affecting ${assets} in ${incident.zone}`,\n    why: evidence.map(e => `${e.source}: ${e.detail}`),\n    impact: workers.length\n      ? `${workers.length} person(s) exposed in ${incident.zone}. Unplanned loss of ${assets}.`\n      : `No personnel currently detected in ${incident.zone}. Unplanned loss of ${assets}.`,\n    prediction: `Risk of the condition on ${assets} continuing to worsen without intervention.`,\n    recommended_action_ids: chosen,\n    sources: [],\n    produced_by: 'n8n template fallback (language model unavailable)',\n    fallback: true,\n  },\n}];"
-      },
       "id": "abb7ec1a-1f74-51ce-9edb-8e41569c60fe",
       "name": "Template recommendation (LLM unavailable)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        200,
-        120
-      ]
+        208,
+        128
+      ],
+      "parameters": {
+        "jsCode": "\n// The AI Agent's error output lands here: no credential, quota exhausted, malformed structured\n// output, or the model simply unavailable. Produce exactly the same shape deterministically so\n// the rest of the workflow cannot tell the difference. This is v1's behaviour.\nconst src = $('Incident webhook').first().json.body;\nconst incident = src.incident || {};\nconst allowed = src.allowed_actions || [];\nconst evidence = src.evidence || [];\nconst workers = src.workers || [];\n\nconst allowedIds = allowed.map(a => a.id);\nconst byHazard = {\n  MACHINE_OVERHEATING: ['stop_machine', 'evacuate_zone', 'activate_cooling'],\n  INDUSTRIAL_FIRE: ['trigger_alarm', 'evacuate_zone', 'close_door', 'activate_suppression'],\n  CYBER_INTRUSION: ['vlan_quarantine', 'isolate_device'],\n};\nconst chosen = (byHazard[incident.type] || allowedIds).filter(id => allowedIds.includes(id));\nconst hazard = String(incident.type || 'hazard').replace(/_/g, ' ').toLowerCase();\nconst assets = (incident.affected_assets || []).join(', ') || 'the affected zone';\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    allowed_action_ids: allowedIds,\n    what: `${hazard} affecting ${assets} in ${incident.zone}`,\n    why: evidence.map(e => `${e.source}: ${e.detail}`),\n    impact: workers.length\n      ? `${workers.length} person(s) exposed in ${incident.zone}. Unplanned loss of ${assets}.`\n      : `No personnel currently detected in ${incident.zone}. Unplanned loss of ${assets}.`,\n    prediction: `Risk of the condition on ${assets} continuing to worsen without intervention.`,\n    recommended_action_ids: chosen,\n    sources: [],\n    produced_by: 'n8n template fallback (language model unavailable)',\n    fallback: true,\n  },\n}];"
+      }
     },
     {
-      "parameters": {
-        "jsCode": "\n// One entry point for both paths: the agent's structured output, or the template fallback.\n// Reads the original payload off the trigger node, because item pairing is not reliable after\n// an agent call. Belt and braces on the ids: the backend validates them against the catalogue\n// too, but an id that never leaves n8n is one fewer rejection to explain.\nconst src = $('Incident webhook').first().json.body;\nconst item = $input.first().json;\nconst fromAgent = item.output && typeof item.output === 'object' ? item.output : null;\nconst body = fromAgent || item;\n\nconst allowed = new Set((src.allowed_actions || []).map(a => a.id));\nconst proposed = Array.isArray(body.recommended_action_ids) ? body.recommended_action_ids : [];\nconst validated = [...new Set(proposed.map(id => String(id).trim().toLowerCase()))]\n  .filter(id => allowed.has(id));\nconst rejected = [...new Set(proposed)].filter(id => !allowed.has(String(id).trim().toLowerCase()));\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    what: body.what || '',\n    why: Array.isArray(body.why) ? body.why : [],\n    impact: body.impact || '',\n    prediction: body.prediction || '',\n    sources: Array.isArray(body.sources) ? body.sources : [],\n    recommended_action_ids: validated,\n    rejected_action_ids: rejected,\n    produced_by: body.produced_by || ('models/gemini-2.0-flash' + ' via n8n AI Agent'),\n    fallback: body.fallback === true,\n  },\n}];"
-      },
       "id": "047d77f5-d49c-5d20-a2fb-c231f0f39f47",
       "name": "Validate against allowed_actions",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        420,
-        300
-      ]
+        432,
+        304
+      ],
+      "parameters": {
+        "jsCode": "\n// One entry point for both paths: the agent's structured output, or the template fallback.\n// Reads the original payload off the trigger node, because item pairing is not reliable after\n// an agent call. Belt and braces on the ids: the backend validates them against the catalogue\n// too, but an id that never leaves n8n is one fewer rejection to explain.\nconst src = $('Incident webhook').first().json.body;\nconst item = $input.first().json;\nconst fromAgent = item.output && typeof item.output === 'object' ? item.output : null;\nconst body = fromAgent || item;\n\nconst allowed = new Set((src.allowed_actions || []).map(a => a.id));\nconst proposed = Array.isArray(body.recommended_action_ids) ? body.recommended_action_ids : [];\nconst validated = [...new Set(proposed.map(id => String(id).trim().toLowerCase()))]\n  .filter(id => allowed.has(id));\nconst rejected = [...new Set(proposed)].filter(id => !allowed.has(String(id).trim().toLowerCase()));\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    what: body.what || '',\n    why: Array.isArray(body.why) ? body.why : [],\n    impact: body.impact || '',\n    prediction: body.prediction || '',\n    sources: Array.isArray(body.sources) ? body.sources : [],\n    recommended_action_ids: validated,\n    rejected_action_ids: rejected,\n    produced_by: body.produced_by || ('models/gemini-3.8-flash' + ' via n8n AI Agent'),\n    fallback: body.fallback === true,\n  },\n}];"
+      }
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $json.backend_base_url }}/api/ai/n8n/enrichment/{{ $json.incident_id }}",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ what: $json.what, why: $json.why, impact: $json.impact, prediction: $json.prediction, recommended_action_ids: $json.recommended_action_ids, sources: $json.sources, produced_by: $json.produced_by, fallback: $json.fallback, resume_url: $execution.resumeUrl }) }}"
-      },
       "id": "995b69ad-f32d-5959-a2b8-6e1699aa3449",
       "name": "POST enrichment",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         640,
-        300
-      ]
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.backend_base_url }}/api/ai/n8n/enrichment/{{ $json.incident_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ what: $json.what, why: $json.why, impact: $json.impact, prediction: $json.prediction, recommended_action_ids: $json.recommended_action_ids, sources: $json.sources, produced_by: $json.produced_by, fallback: $json.fallback, resume_url: $execution.resumeUrl }) }}",
+        "options": {}
+      }
     },
     {
+      "id": "bd2be3c8-1174-5de5-b2b5-88c0fbe87089",
+      "name": "Wait for owner decision (10 min)",
+      "webhookId": "bb568fa5-eeeb-51cc-b4b5-addf97c1e81d",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        304
+      ],
       "parameters": {
         "resume": "webhook",
         "httpMethod": "POST",
-        "responseMode": "onReceived",
         "limitWaitTime": true,
         "resumeAmount": 10,
         "resumeUnit": "minutes",
         "options": {}
-      },
-      "id": "bd2be3c8-1174-5de5-b2b5-88c0fbe87089",
-      "name": "Wait for owner decision (10 min)",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        860,
-        300
-      ],
-      "webhookId": "bb568fa5-eeeb-51cc-b4b5-addf97c1e81d"
+      }
     },
     {
+      "id": "00b1ca11-3edf-569e-9f4d-afc231a27e6a",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        304
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -248,49 +259,46 @@
         },
         "looseTypeValidation": true,
         "options": {}
-      },
-      "id": "00b1ca11-3edf-569e-9f4d-afc231a27e6a",
-      "name": "Approved?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1080,
-        300
-      ]
+      }
     },
     {
-      "parameters": {
-        "resume": "timeInterval",
-        "amount": 15,
-        "unit": "seconds"
-      },
       "id": "2e34d4a4-3d02-593a-94e6-8a0f9e00ff10",
       "name": "Wait 15s for the plant to settle",
+      "webhookId": "97ae5438-3fdb-5b81-b1b7-23ebad259785",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1300,
-        180
+        1312,
+        192
       ],
-      "webhookId": "97ae5438-3fdb-5b81-b1b7-23ebad259785"
+      "parameters": {
+        "amount": 15
+      }
     },
     {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/verify/{{ $('Incident webhook').first().json.body.incident_id }}",
-        "options": {}
-      },
       "id": "94c15be4-9b29-5793-82d7-2a0f78fd72b5",
       "name": "GET verify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
       "position": [
         1520,
-        180
+        192
       ],
-      "onError": "continueRegularOutput"
+      "parameters": {
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/verify/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "options": {}
+      }
     },
     {
+      "id": "103cbe2b-f65c-5d10-a1d5-de3383b4f8e0",
+      "name": "Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        192
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -314,85 +322,97 @@
         },
         "looseTypeValidation": true,
         "options": {}
-      },
-      "id": "103cbe2b-f65c-5d10-a1d5-de3383b4f8e0",
-      "name": "Verified?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1740,
-        180
-      ]
+      }
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'RESOLVING', note: 'Owner authorised the action and verification passed: ' + ($json.details || []).filter(d => d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}"
-      },
       "id": "a0188de0-a67a-5b9e-97cb-947f2849d38f",
       "name": "POST status RESOLVING",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
       "position": [
-        1960,
+        1968,
         80
       ],
-      "onError": "continueRegularOutput"
-    },
-    {
       "parameters": {
         "method": "POST",
         "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'ESCALATED', note: 'Action was authorised but verification did not confirm the plant changed: ' + ($json.details || []).filter(d => !d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}"
-      },
+        "jsonBody": "={{ JSON.stringify({ status: 'RESOLVING', note: 'Owner authorised the action and verification passed: ' + ($json.details || []).filter(d => d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}",
+        "options": {}
+      }
+    },
+    {
       "id": "8201306f-2b97-527b-b150-ac5dda8cf52c",
       "name": "POST status ESCALATED",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
       "position": [
-        1960,
-        300
+        1968,
+        304
       ],
-      "onError": "continueRegularOutput"
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'ESCALATED', note: 'Action was authorised but verification did not confirm the plant changed: ' + ($json.details || []).filter(d => !d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}",
+        "options": {}
+      }
     },
     {
-      "parameters": {
-        "jsCode": "// The Wait node resumes either because the owner decided, or because its 10 minute limit expired.\nconst decision = ($json.body && $json.body.decision) || $json.decision || 'timeout';\nconst cancelled = decision === 'cancel';\nreturn [{\n  json: {\n    decision,\n    status: cancelled ? 'DISMISSED' : 'ESCALATED',\n    note: cancelled\n      ? 'Owner cancelled the recommended action in the dashboard; incident dismissed by human decision.'\n      : 'No owner decision in 10 min -> escalated. Nobody acted on the recommendation inside the '\n        + 'approval window, so this incident needs a human now.',\n  },\n}];"
-      },
       "id": "bf3480ae-d087-566b-bcde-54234fb7c7a2",
       "name": "Outcome without approval",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1300,
-        460
-      ]
+        1312,
+        464
+      ],
+      "parameters": {
+        "jsCode": "// The Wait node resumes either because the owner decided, or because its 10 minute limit expired.\nconst decision = ($json.body && $json.body.decision) || $json.decision || 'timeout';\nconst cancelled = decision === 'cancel';\nreturn [{\n  json: {\n    decision,\n    status: cancelled ? 'DISMISSED' : 'ESCALATED',\n    note: cancelled\n      ? 'Owner cancelled the recommended action in the dashboard; incident dismissed by human decision.'\n      : 'No owner decision in 10 min -> escalated. Nobody acted on the recommendation inside the '\n        + 'approval window, so this incident needs a human now.',\n  },\n}];"
+      }
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: $json.status, note: $json.note, produced_by: 'n8n incident_response_v2' }) }}"
-      },
       "id": "6ef622eb-c3a8-5f4f-aeb9-1ae62b7e056e",
       "name": "POST status (cancel or timeout)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
       "position": [
         1520,
-        460
+        464
       ],
-      "onError": "continueRegularOutput"
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/status/{{ $('Incident webhook').first().json.body.incident_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.status, note: $json.note, produced_by: 'n8n incident_response_v2' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "f6563e2d-c0f1-42e4-8003-eed33f21252a",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        896
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BtJMoYct0kxR6KxY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "connections": {
@@ -614,10 +634,21 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Procedure search (vector store)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
-  },
-  "pinData": {}
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
 }

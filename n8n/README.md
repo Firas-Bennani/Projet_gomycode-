@@ -65,9 +65,9 @@ fails loudly instead of leaving a half-configured workflow:
 
 | # | File | Activate? | Needs credentials |
 |---|---|---|---|
-| 1 | `incident_response_v1.json` | ✅ **yes** (until v2 exists) | none |
+| 1 | `incident_response_v1.json` | only as a fallback — **inactive** once v2 works | none |
 | 2 | `rag_ingestion.json` *(Step 5)* | run manually once | embeddings model |
-| 3 | `incident_response_v2.json` *(Step 5)* | ✅ yes — **deactivate v1 first** | chat model + vector store |
+| 3 | `incident_response_v2.json` | ✅ **yes, this is the demo workflow** — deactivate v1 first | Gemini chat model ×2 + embeddings |
 | 4 | `threat_watch.json` *(Step 10, cut)* | optional | chat model |
 
 Only one of v1 / v2 may be active at a time: they share the webhook path `/webhook/incident`.
@@ -91,10 +91,46 @@ Request node fails with *"The service refused the connection - perhaps it is off
 
 Set `N8N_ENABLED=false` to run the demo with no n8n at all (templates only).
 
+## 4b. ⚠️ The vector store is IN MEMORY — re-run the ingestion after any n8n restart
+
+The Simple Vector Store node states it plainly: *"For experimental use only: data is stored in
+memory and will be lost if n8n restarts. Data may also be cleared if available memory gets low."*
+
+So, **every time n8n restarts — and any time this laptop has been short of RAM — the RAG index is
+empty until you re-run the ingestion.** It takes about 15 seconds:
+
+1. <http://localhost:5678> → workflow **"RAG ingestion (procedures → Simple Vector Store)"**
+2. click **Execute workflow** once, confirm it goes green and reports ~31 items.
+
+Nothing breaks if you forget: the AI Agent also has `procedure_search`, an HTTP tool pointed at
+the backend's keyword RAG, which needs no ingestion and cannot go stale. You would simply lose
+semantic retrieval and keep keyword retrieval. That is exactly why the agent has both tools.
+
+### Pre-demo checklist
+
+Run through this before showing anything, in this order:
+
+- [ ] Backend answers: `curl http://127.0.0.1:8000/health` → `{"status":"HEALTHY"}`
+- [ ] n8n answers: <http://localhost:5678> loads
+- [ ] `python n8n/import_workflows.py --list` shows **exactly one** active incident workflow
+      (v2 for the LLM demo, v1 if you want the deterministic one)
+- [ ] **Re-run the RAG ingestion** (above) — assume the store is empty
+- [ ] `curl "http://127.0.0.1:8000/api/ai/n8n/rag?q=pressure%20limit&hazard=MACHINE_OVERHEATING"`
+      returns hits, so the fallback retrieval is alive
+- [ ] Frontend running: `cd frontend; npm run dev` → <http://localhost:5173>
+- [ ] Gemini quota: the free tier allows **5 model calls per minute**. One incident costs about
+      3. **Leave ~60 s between scenario runs**, or the agent hits HTTP 429 and silently falls
+      back to the template (correct behaviour, but you lose the LLM wording on screen).
+- [ ] Clear old n8n executions if you want an all-green Executions tab
+- [ ] Close heavy applications — RAM pressure has killed background processes on this machine
+
 ## 5. Verify the whole round trip
 
 ```powershell
-..\.venv\Scripts\python.exe n8n\e2e_test.py
+..\.venv\Scripts\python.exe n8n\e2e_test.py        # 15 checks, backend <-> n8n round trip
+..\.venv\Scripts\python.exe n8n\gate1_verify.py    # 13 checks, live websocket + P5 + no re-open
+..\.venv\Scripts\python.exe n8n\llm_roundtrip.py   # the LLM path, with latency
+..\.venv\Scripts\python.exe n8n\llm_roundtrip.py --break    # prove the template fallback
 ```
 
 15 checks, ~60 s: triggers `machine_overheating`, waits for the n8n execution, checks the
@@ -111,13 +147,31 @@ Webhook POST /webhook/incident   (responds immediately; the orchestrator never w
   -> Code: template recommendation   picks action ids from the payload's allowed_actions
   -> Code: validate against allowed_actions
   -> HTTP POST /api/ai/n8n/enrichment/{id}   includes {{ $execution.resumeUrl }}
-  -> Wait (On Webhook Call, limit 180 s)     the owner's AUTHORIZE/CANCEL resumes this
+  -> Wait (On Webhook Call, limit 10 min)    the owner's AUTHORIZE/CANCEL resumes this
   -> IF approved?
        yes -> Wait 15 s -> HTTP GET /api/ai/n8n/verify/{id}
                  -> IF verified? -> POST status RESOLVING
                                  -> POST status ESCALATED
        no  -> Code: cancel vs timeout -> POST status DISMISSED / ESCALATED
 ```
+
+`incident_response_v2.json` — 22 nodes. Identical from "validate" onwards; the recommendation
+comes from an **AI Agent** instead:
+
+```
+Webhook -> Code: build agent input (flattens the incident + the allowed_actions menu)
+  -> AI Agent  (Gemini chat model, temperature 0.2, Structured Output Parser)
+       tools: procedure_search       -> HTTP to /api/ai/n8n/rag   (always works)
+              procedure_vector_search -> Simple Vector Store      (needs ingestion)
+       on error -> Code: deterministic template  (v1's logic, byte for byte)
+  -> Code: validate against allowed_actions -> ... identical to v1 ...
+```
+
+Three Gemini nodes need the credential: the agent's chat model, the **vector-store tool's own**
+chat model (n8n flags the tool red without one), and the embeddings node. Models in use:
+`models/gemini-3.8-flash` for chat, `models/gemini-embedding-001` for embeddings.
+`models/gemini-2.5-flash` returns 404 *"no longer available to new users"* and
+`models/text-embedding-004` was not available for this key.
 
 Two safety properties worth stating to a jury:
 
