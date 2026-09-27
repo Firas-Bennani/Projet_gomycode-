@@ -202,6 +202,40 @@ async def test_authorising_the_preparation_visibly_changes_the_machines():
     assert state.machines["M-04"].parameters["pressure"].value <= 6.5
 
 
+@pytest.mark.asyncio
+async def test_the_lead_time_survives_an_n8n_enrichment():
+    """The model rewrites the narrative and cannot reproduce the forecast arithmetic, so the
+    bridge carries those two lines across. Without this the enriched storm incident would stop
+    saying how long there is to act, which is the only thing that makes it actionable."""
+    from fastapi.testclient import TestClient
+
+    from app.api.auth import issue_token
+    from app.main import app
+
+    run = await run_scenario("storm_forecast", ticks=7)
+    incident = run.incidents[0]
+    assert "LEAD TIME" in incident.ai_reasoning
+
+    client = TestClient(app, headers={
+        "Authorization": f"Bearer {issue_token('firas', 'owner')['token']}"})
+    response = client.post(f"/api/ai/n8n/enrichment/{incident.id}", json={
+        "what": "A thunderstorm is forecast over the plant.",
+        "why": ["High probability and strong instability."],
+        "impact": "Surge risk on the compressor and the switchyard.",
+        "prediction": "Gusts and lightning within the hour.",
+        "recommended_action_ids": ["load_shedding", "reduce_pressure_setpoint"],
+        "sources": [{"document": "WX-SP-07", "section": "3"}],
+        "produced_by": "a model, in this test",
+        "fallback": False,
+    })
+    assert response.status_code == 200, response.text
+
+    enriched = state.incidents[incident.id].ai_reasoning
+    assert "enriched by" in enriched, "the enrichment did land"
+    assert "LEAD TIME" in enriched, "and the lead time was not lost with the old narrative"
+    assert "FORECAST BASIS" in enriched
+
+
 # --------------------------------------------------------------------- the procedure document
 
 def test_the_severe_weather_procedure_is_retrievable():

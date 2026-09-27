@@ -209,6 +209,14 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
         + (f", rejected: {', '.join(r['id'] for r in rejected)}" if rejected else "")
     )
 
+    # Two lines belong to the agents, not to the model: the forecast arithmetic and the lead time
+    # on a predictive incident. The enrichment rewrites the narrative, and an LLM has no way to
+    # reproduce either, so they are carried across instead of being lost. Without this the storm
+    # incident stops stating how long there is to act, which is the only thing that makes it
+    # actionable (docs/ai/DEMO.md 4b tells the operator to read exactly those lines).
+    carried = [line for line in (incident.ai_reasoning or "").splitlines()
+               if line.startswith(("FORECAST BASIS:", "LEAD TIME:"))]
+
     incident.ai_reasoning = (
         f"WHAT: {fields['what'] or incident.type.replace('_', ' ').title()}\n"
         f"WHY: {why_lines}\n"
@@ -221,6 +229,8 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
         f"SOURCES: {sources_text or 'none cited'}\n"
         f"— enriched by {provenance}"
     )
+    if carried:
+        incident.ai_reasoning += "\n" + "\n".join(carried)
 
     n8n_client.mark_enriched(incident_id)
 
