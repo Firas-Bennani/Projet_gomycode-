@@ -41,6 +41,22 @@ system and not a hardcoded animation.
 
 ---
 
+## 0b. Sign in — the platform is now closed without a login
+
+Open <http://localhost:5173> and you get a sign-in page, not the dashboard.
+
+| Account | Password | Role | Can do |
+|---|---|---|---|
+| **`firas`** | `Copilot#Owner2026` | owner | everything, **including AUTHORIZE** — use this for the demo |
+| `operator` | `Copilot#Operator2026` | operator | read-only; AUTHORIZE returns 403 |
+| `auditor` | `Copilot#Auditor2026` | operator | read-only |
+
+Worth a sentence on stage: *"the approval gate is enforced by the server, not by hiding a button —
+signed in as an operator, the AUTHORIZE call comes back 403."* 15 seconds to show.
+
+Sessions end after **30 minutes of inactivity** or when the 30-minute token expires, whichever
+comes first, with a warning banner one minute before. Any 401 returns you to the login.
+
 ## 1. Normal operation — 20 s
 
 Click **RESET**, then leave the plant idle.

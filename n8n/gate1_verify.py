@@ -21,6 +21,10 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import pathlib
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from _auth import auth_headers  # noqa: E402
 
 BACKEND = "http://127.0.0.1:8000"
 WS_URL = "ws://127.0.0.1:8000/ws"
@@ -37,7 +41,7 @@ def request(method, path, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
         BACKEND + path, data=data, method=method,
-        headers={"Content-Type": "application/json"})
+        headers={"Content-Type": "application/json", **auth_headers()})
     try:
         with urllib.request.urlopen(req, timeout=20) as response:
             raw = response.read().decode()
@@ -84,7 +88,7 @@ async def main() -> int:
     await asyncio.sleep(1.5)
 
     events = []
-    async with websockets.connect(WS_URL) as ws:
+    async with websockets.connect(f"{WS_URL}?token={__import__('_auth').token()}") as ws:
         print("\n1. websocket connected as the dashboard does; triggering machine_overheating")
         request("POST", "/api/demo/scenario", {"scenario": "machine_overheating"})
         await collect(ws, 16, events)

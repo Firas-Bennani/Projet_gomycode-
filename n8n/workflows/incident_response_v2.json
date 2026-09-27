@@ -113,6 +113,11 @@
               "name": "limit",
               "valueProvider": "fieldValue",
               "value": "4"
+            },
+            {
+              "name": "service_token",
+              "valueProvider": "fieldValue",
+              "value": "copilot-n8n-shared-secret-2026"
             }
           ]
         }
@@ -206,7 +211,17 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ what: $json.what, why: $json.why, impact: $json.impact, prediction: $json.prediction, recommended_action_ids: $json.recommended_action_ids, sources: $json.sources, produced_by: $json.produced_by, fallback: $json.fallback, resume_url: $execution.resumeUrl }) }}",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       }
     },
     {
@@ -288,7 +303,17 @@
       ],
       "parameters": {
         "url": "={{ $('Incident webhook').first().json.body.backend_base_url }}/api/ai/n8n/verify/{{ $('Incident webhook').first().json.body.incident_id }}",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       }
     },
     {
@@ -341,7 +366,17 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ status: 'RESOLVING', note: 'Owner authorised the action and verification passed: ' + ($json.details || []).filter(d => d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       }
     },
     {
@@ -360,7 +395,17 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ status: 'ESCALATED', note: 'Action was authorised but verification did not confirm the plant changed: ' + ($json.details || []).filter(d => !d.passed).map(d => d.check).join('; '), produced_by: 'n8n incident_response_v2' }) }}",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       }
     },
     {
@@ -392,7 +437,17 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ status: $json.status, note: $json.note, produced_by: 'n8n incident_response_v2' }) }}",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       }
     },
     {

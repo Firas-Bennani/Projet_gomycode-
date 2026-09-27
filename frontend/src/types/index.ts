@@ -198,9 +198,10 @@ export interface CollaborationItem {
   id: string;
   partner_name: string;
   type: string;
-  status: string;
+  status?: string;
   contact: string;
   notes: string;
+  active_since?: string;
 }
 
 export interface IndustrialEvent {

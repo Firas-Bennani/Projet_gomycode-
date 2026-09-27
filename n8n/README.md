@@ -85,6 +85,23 @@ BACKEND_BASE_URL_FOR_N8N=http://127.0.0.1:8000
 N8N_TIMEOUT_SECONDS=3
 ```
 
+### The backend now requires authentication
+
+Every `/api/*` route needs a signed-in user, so n8n — which has no user session — presents a
+**shared service secret**. Set the same value in `.env`:
+
+```
+N8N_SERVICE_TOKEN=copilot-n8n-shared-secret-2026
+```
+
+The workflow's HTTP nodes send it as the `X-Copilot-Service-Token` header; the AI *tool* node sends
+it as a `service_token` query parameter, because query parameters are far easier to configure on
+that node. The backend accepts either on `/api/ai/n8n/*`, and also accepts a normal signed-in user
+so an owner can inspect the bridge from a script.
+
+Rotating the secret means updating `.env` **and** re-importing the workflows, then re-running
+`python n8n/e2e_test.py`.
+
 ⚠️ **Use `127.0.0.1`, not `localhost`, for `BACKEND_BASE_URL_FOR_N8N`.** Node 18+ resolves
 `localhost` to IPv6 `::1` first while uvicorn binds IPv4 `127.0.0.1` only, so n8n's HTTP
 Request node fails with *"The service refused the connection - perhaps it is offline"*.

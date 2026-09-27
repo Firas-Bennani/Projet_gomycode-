@@ -1,0 +1,41 @@
+{
+  "_comment": "Demo users for Industrial_Copilot. Passwords are PBKDF2-SHA256 salted hashes; the demo passwords are documented in docs/ai/DEMO.md and .env.example. owner = may authorise actions and edit records; operator = read-only.",
+  "users": [
+    {
+      "username": "firas",
+      "display_name": "Firas Bennani",
+      "job_title": "Plant Systems Owner",
+      "role": "owner",
+      "password": {
+        "algorithm": "pbkdf2_sha256",
+        "rounds": 200000,
+        "salt": "272f0995b08435728499d3843e9bf362",
+        "hash": "f0333468523732bf59069b04548c320acda3ddfd4656672ec1bfd9ed974ba451"
+      }
+    },
+    {
+      "username": "operator",
+      "display_name": "Ahmed Benali",
+      "job_title": "Control Room Operator",
+      "role": "operator",
+      "password": {
+        "algorithm": "pbkdf2_sha256",
+        "rounds": 200000,
+        "salt": "06378c9e142af9a9d40619913ee1c98b",
+        "hash": "95f7a861e7b79ff5ec4b3bdf4f71b0b55d4e4cb27f37ed50d9c205d8342cb390"
+      }
+    },
+    {
+      "username": "auditor",
+      "display_name": "Sarah Mansouri",
+      "job_title": "Safety Auditor",
+      "role": "operator",
+      "password": {
+        "algorithm": "pbkdf2_sha256",
+        "rounds": 200000,
+        "salt": "5472cb4f1e4efd22ba28e0e153058e9a",
+        "hash": "94607f8e4dd42d1b51478423a59417b89c3291e448bc62663e44b915b8d86ae3"
+      }
+    }
+  ]
+}

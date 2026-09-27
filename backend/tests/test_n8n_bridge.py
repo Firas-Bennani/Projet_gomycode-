@@ -16,8 +16,13 @@ from app.main import app
 from app.models.schemas import Action, ActionStatus, EvidenceItem, Incident, RiskLevel, Severity
 from app.services.state_store import state
 
+from app.api.auth import issue_token
+
 # No `with` block: that would run the lifespan and start the background simulator.
-client = TestClient(app)
+# The API requires authentication now, so the client carries an owner token — these tests are
+# about the bridge, and the auth rules themselves are covered in test_auth.py.
+_OWNER_TOKEN = issue_token("firas", "owner")["token"]
+client = TestClient(app, headers={"Authorization": f"Bearer {_OWNER_TOKEN}"})
 
 
 def seed_incident(incident_type="MACHINE_OVERHEATING", status="ACTIVE", assets=None):

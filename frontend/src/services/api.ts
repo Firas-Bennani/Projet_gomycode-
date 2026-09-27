@@ -1,10 +1,21 @@
+import { authHeader, handleUnauthorized } from './auth';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    // Every call carries the session token; any 401 ends the session and returns to the login.
+    headers: { 'Content-Type': 'application/json', ...authHeader(), ...(options?.headers || {}) },
   });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('Not authenticated');
+  }
+  if (res.status === 403) {
+    const body = await res.json().catch(() => ({ detail: 'Not permitted' }));
+    throw new Error(body.detail || 'Not permitted for your role');
+  }
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }

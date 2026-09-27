@@ -22,6 +22,9 @@ import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from _auth import auth_headers  # noqa: E402
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 BACKEND = "http://127.0.0.1:8000"
 N8N = "http://localhost:5678"
@@ -43,7 +46,7 @@ def api_key() -> str:
 def call(method, url, body=None, headers=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method,
-                                 headers={"Content-Type": "application/json", **(headers or {})})
+                                 headers={"Content-Type": "application/json", **auth_headers(), **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
             raw = response.read().decode()

@@ -15,7 +15,17 @@
     {
       "parameters": {
         "url": "http://127.0.0.1:8000/api/ai/n8n/corpus",
-        "options": {}
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Copilot-Service-Token",
+              "value": "copilot-n8n-shared-secret-2026"
+            }
+          ]
+        }
       },
       "id": "1b93c969-a0ae-5a13-854c-d966bedc4b1b",
       "name": "GET corpus from backend",

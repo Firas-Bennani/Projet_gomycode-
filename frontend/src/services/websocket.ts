@@ -1,21 +1,33 @@
+import { getToken } from './auth';
+
 type Listener = (data: any) => void;
 
 class WebSocketClient {
   private ws: WebSocket | null = null;
   private url: string;
+  private baseUrl: string;
   private listeners: Map<string, Set<Listener>> = new Map();
   private reconnectInterval = 3000;
   private shouldReconnect = true;
 
   constructor() {
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
-    this.url = `${wsUrl}/ws`;
+    this.baseUrl = `${wsUrl}/ws`;
+    this.url = this.baseUrl;
   }
 
   connect() {
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
+
+    // A browser cannot set an Authorization header on a WebSocket, so the token goes in the
+    // query string. The backend closes the socket with 1008 if it is missing or expired.
+    const token = getToken();
+    if (!token) {
+      return; // not signed in yet; connect() is called again after login
+    }
+    this.url = `${this.baseUrl}?token=${encodeURIComponent(token)}`;
 
     try {
       this.ws = new WebSocket(this.url);

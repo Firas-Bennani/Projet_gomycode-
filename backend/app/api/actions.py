@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from app.api.auth import require_owner
 from typing import List, Dict, Optional
 from app.services.state_store import state
 from app.models.schemas import Action, ActionAuthorizeRequest, ActionCancelRequest
@@ -21,7 +23,10 @@ def get_action(action_id: str):
     return state.actions[action_id]
 
 @router.post("/{action_id}/authorize")
-async def authorize_action(action_id: str, req: ActionAuthorizeRequest):
+async def authorize_action(action_id: str, req: ActionAuthorizeRequest,
+                           user: dict = Depends(require_owner)):
+    """Owner role only. An operator signed in read-only gets 403 from the server, not just a
+    hidden button — the approval gate has to hold even if the UI is bypassed."""
     result = await command_engine.authorize_action(
         action_id=action_id,
         authorized_by=req.authorized_by,
@@ -32,7 +37,8 @@ async def authorize_action(action_id: str, req: ActionAuthorizeRequest):
     return result
 
 @router.post("/{action_id}/cancel")
-async def cancel_action(action_id: str, req: ActionCancelRequest):
+async def cancel_action(action_id: str, req: ActionCancelRequest,
+                        user: dict = Depends(require_owner)):
     result = await command_engine.cancel_action(
         action_id=action_id,
         cancelled_by=req.cancelled_by,
