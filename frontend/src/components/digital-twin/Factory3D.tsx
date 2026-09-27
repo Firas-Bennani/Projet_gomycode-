@@ -342,7 +342,8 @@ export const Factory3D: React.FC<Factory3DProps> = ({
       {/* ─── 3D THREE.JS CANVAS (Light Studio Background like reference image) ─ */}
       <Canvas
         camera={{ position: CAMERA_PRESETS.diorama.pos, fov: 42 }}
-        shadows
+        shadows={false}
+        dpr={[1, 1.5]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         {/* Light Studio Background matching reference image */}

@@ -1,20 +1,26 @@
-import React from 'react';
-import { Cpu, ShieldCheck, Bell, Activity, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Cpu, ShieldCheck, Bell, Activity, User, Moon, Sun } from 'lucide-react';
 
 interface HeaderProps {
   activeAlertCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({ activeAlertCount }) => {
-  const [time, setTime] = React.useState(new Date().toLocaleTimeString());
+  const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle('dark');
+    setIsDark(document.documentElement.classList.contains('dark'));
+  };
+
   return (
-    <header className="h-16 px-6 glass-panel border-b border-slate-800 flex items-center justify-between z-30 select-none">
+    <header className="h-16 px-6 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-30 select-none bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-md">
       {/* Brand & Identity */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-glow-cyan">
@@ -66,6 +72,13 @@ export const Header: React.FC<HeaderProps> = ({ activeAlertCount }) => {
         <div className="text-slate-400 border-l border-slate-800 pl-3">
           {time}
         </div>
+        <button
+          onClick={toggleTheme}
+          className="ml-2 p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+          title="Toggle Light/Dark Mode"
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
       </div>
     </header>
   );

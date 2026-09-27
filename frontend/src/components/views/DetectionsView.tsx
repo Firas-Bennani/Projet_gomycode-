@@ -39,6 +39,12 @@ export const DetectionsView: React.FC<{ incidents: Incident[] }> = ({ incidents 
                   }`}>
                     {incident.severity}
                   </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 ${
+                    incident.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse'
+                  }`}>
+                    {incident.status === 'RESOLVED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                    {incident.status === 'RESOLVED' ? 'RESOLVED' : 'AWAITING AUTHORIZATION'}
+                  </span>
                   <h3 className="text-sm font-bold text-white">{incident.type.replace(/_/g, ' ')}</h3>
                 </div>
                 <div className="text-xs text-slate-400 flex items-center gap-2">

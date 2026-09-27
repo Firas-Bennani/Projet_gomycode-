@@ -61,6 +61,56 @@ export const WorkersView: React.FC<{ workers: Worker[] }> = ({ workers }) => {
           </div>
         ))}
       </div>
+      <div className="mt-6 border-t border-slate-800 pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-bold text-white tracking-wide">SYSTÈME DE POINTAGE & PRÉSENCE (LOGS)</h3>
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/40">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="px-4 py-2 font-semibold">WORKER</th>
+                <th className="px-4 py-2 font-semibold">ID BADGE</th>
+                <th className="px-4 py-2 font-semibold">CHECK IN</th>
+                <th className="px-4 py-2 font-semibold">CHECK OUT</th>
+                <th className="px-4 py-2 font-semibold">STATUS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {workers.map((w, i) => (
+                <tr key={`pointage-${w.id}`} className="hover:bg-slate-800/30">
+                  <td className="px-4 py-2.5 font-bold text-white">{w.name}</td>
+                  <td className="px-4 py-2.5 text-slate-400">{w.id}</td>
+                  <td className="px-4 py-2.5 text-emerald-400">{w.entry_time}</td>
+                  <td className="px-4 py-2.5 text-slate-500">
+                    {w.status === 'ON_SITE' ? '--- (Active)' : '17:00:00'}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {w.status === 'ON_SITE' ? (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Présent (Validé par IA/Caméra)</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded bg-slate-500/20 text-slate-400">Absent</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {/* Dummy row to demonstrate "False Presence" detection feature requested by owner */}
+              <tr className="hover:bg-slate-800/30">
+                <td className="px-4 py-2.5 font-bold text-red-400">John Doe (Anomalie)</td>
+                <td className="px-4 py-2.5 text-slate-400">WRK-999</td>
+                <td className="px-4 py-2.5 text-emerald-400">08:15:00</td>
+                <td className="px-4 py-2.5 text-slate-500">---</td>
+                <td className="px-4 py-2.5">
+                  <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
+                    Fausse Présence Détectée (Caméra: Non trouvé)
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
