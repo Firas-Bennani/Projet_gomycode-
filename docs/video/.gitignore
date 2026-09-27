@@ -1,0 +1,4 @@
+# Recordings are build output, not source: the script regenerates them in ~40 s.
+# Keeping them out of git also keeps a 1080p clip out of every clone.
+*.mp4
+*.webm
