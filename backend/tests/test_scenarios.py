@@ -193,3 +193,217 @@ async def test_reset_is_recorded_in_the_agent_log():
         [("machine_overheating", 6), ("normal", 6)], factory_reset_between=True
     )
     assert any("Correlation memory cleared" in l["reasoning"] for l in run.logs)
+
+
+# --------------------------------------------------------------------- GATE 1 regressions
+
+@pytest.mark.asyncio
+async def test_pending_actions_are_announced_on_the_websocket():
+    """GATE 1 issue 1: the Command Center only showed actions after F5.
+
+    Nothing published when an action was *created* — only command_engine published on
+    authorise/execute/complete — so the dashboard, which keeps its own list from
+    ACTION_STATUS events, never learned about a pending action.
+    """
+    run = await run_scenario("machine_overheating", ticks=12)
+
+    action_events = run.events_of("ACTION_STATUS")
+    assert action_events, "creating actions must publish ACTION_STATUS"
+
+    awaiting = [e for e in action_events if e["data"]["status"] == "AWAITING_APPROVAL"]
+    assert awaiting, f"expected an AWAITING_APPROVAL announcement, saw {[e['data']['status'] for e in action_events]}"
+
+    # The payload must be the shape frontend/src/App.tsx already consumes.
+    payload = awaiting[0]["data"]
+    for field in ("id", "incident_id", "action_type", "target", "status", "risk_level"):
+        assert field in payload, f"{field} missing from the ACTION_STATUS payload"
+
+    # The incident must be announced before its actions, or the UI has nowhere to put them.
+    order = [e["event_type"] for e in run.published
+             if e["event_type"] in ("INCIDENT_CREATED", "ACTION_STATUS")]
+    assert order.index("INCIDENT_CREATED") < order.index("ACTION_STATUS")
+
+    announced_ids = {e["data"]["id"] for e in action_events}
+    pending_ids = {a.id for a in run.actions if a.status.value == "AWAITING_APPROVAL"}
+    assert pending_ids <= announced_ids, "every pending action must have been announced"
+
+
+@pytest.mark.asyncio
+async def test_authorizing_everything_resolves_and_does_not_reopen():
+    """GATE 1 issues 3+4: a new CRITICAL incident opened seconds after the operator resolved.
+
+    The simulator kept driving M-04 to 8.93 bar after the shutdown (P5), so the thresholds were
+    still breached and a fresh incident was created. Now P5 decays the readings and a
+    just-resolved hazard may only re-open if the values are climbing again.
+
+    ``keep_clock`` matters: restarting the fake clock would put ``resolved_at`` in the future and
+    silently disable both the cooldown and the re-open guard, so the test would pass for the
+    wrong reason.
+    """
+    from app.services.command_engine import command_engine
+    from app.services.state_store import state
+    from ai import clock
+    from iot.simulator import simulator
+
+    run = await run_scenario("machine_overheating", ticks=12, keep_clock=True)
+    try:
+        incident = run.incidents[0]
+        assert incident.status == "ACTIVE"
+
+        pending = [a for a in run.actions if a.status.value == "AWAITING_APPROVAL"]
+        assert pending, "the scenario should leave actions awaiting approval"
+        for action in pending:
+            await command_engine.authorize_action(action.id, authorized_by="owner_01")
+            await command_engine.execute_action(action.id)
+
+        assert incident.status == "RESOLVED", f"expected RESOLVED, got {incident.status}"
+        assert incident.resolved_at is not None
+        resolved_count = len(state.incidents)
+
+        # Keep the plant running for another 70 simulated seconds — past the 60 s cooldown.
+        await run.feed(70, scenario="machine_overheating")
+
+        assert len(state.incidents) == resolved_count, (
+            "a new incident was opened after resolution: "
+            f"{[(i.id, i.type, i.status) for i in state.incidents.values()]}"
+        )
+        machine = state.machines["M-04"]
+        assert machine.parameters["pressure"].value < 7.0, (
+            f"P5: a stopped machine must decay, still at {machine.parameters['pressure'].value} bar")
+        assert machine.parameters["temperature"].value < 80.0
+    finally:
+        clock.reset_clock()
+        simulator.stopped_machines.clear()
+        simulator.cooling_active = False
+        simulator.suppression_active = False
+        simulator.set_scenario("normal")
+
+
+@pytest.mark.asyncio
+async def test_a_resolved_hazard_reopens_only_when_values_climb_again():
+    """The re-open guard itself, isolated from the simulator.
+
+    Same readings, same zone, twice: once with the machine's pressure trending down, once with
+    it trending up. Only the rising case may open a new incident.
+    """
+    from datetime import timedelta
+
+    from ai import clock
+    from ai.orchestrator import AgentOrchestrator, REOPEN_REQUIRE_RISING_S, RESOLVED_COOLDOWN_S
+    from app.models.schemas import Incident, Severity
+    from app.services.state_store import state
+
+    fake = clock.FakeClock()
+    clock.set_clock(fake)
+    try:
+        state.initialize_state()
+        orchestrator = AgentOrchestrator()
+
+        resolved = Incident(
+            id="INC-OLD", type="MACHINE_OVERHEATING", severity=Severity.CRITICAL, confidence=0.9,
+            zone="ZONE_B", timestamp=clock.now(), affected_assets=["M-04"], affected_workers=[],
+            evidence=[], ai_reasoning="resolved earlier", recommended_actions=[],
+            status="RESOLVED", resolved_at=clock.now(),
+        )
+        state.incidents["INC-OLD"] = resolved
+
+        # Past the hard cooldown, still inside the "must be rising" window.
+        fake.advance(RESOLVED_COOLDOWN_S + 5.0)
+        assert orchestrator._seconds_since_resolved("MACHINE_OVERHEATING", "ZONE_B") < REOPEN_REQUIRE_RISING_S
+
+        falling = {
+            "agent_id": "machine_agent", "anomaly": True, "severity": "WARNING",
+            "machine_id": "M-04", "zone": "ZONE_B", "pressure": 7.4,
+            "pressure_slope": -0.8, "pressure_slope_known": True,
+            "observation": "pressure 7.40 bar, falling", "decision": "monitor",
+        }
+        rising = {**falling, "pressure_slope": 0.9,
+                  "observation": "pressure 7.40 bar, climbing again"}
+
+        assert orchestrator._evidence_rising([falling])[0] is False
+        assert orchestrator._evidence_rising([rising])[0] is True
+
+        incident_data = {
+            "id": "INC-NEW1", "type": "MACHINE_OVERHEATING", "severity": Severity.WARNING,
+            "confidence": 0.6, "zone": "ZONE_B", "timestamp": clock.now(),
+            "affected_assets": ["M-04"], "affected_workers": [], "evidence": [],
+            "ai_reasoning": "new", "recommended_actions": [], "status": "ACTIVE",
+        }
+
+        await orchestrator._create_or_escalate(dict(incident_data), [falling])
+        assert "INC-NEW1" not in state.incidents, "a receding hazard must not re-open"
+        assert any("receding rather than returning" in l["reasoning"] for l in state.agent_logs)
+
+        await orchestrator._create_or_escalate({**incident_data, "id": "INC-NEW2"}, [rising])
+        assert "INC-NEW2" in state.incidents, "a genuinely climbing hazard must re-open"
+    finally:
+        clock.reset_clock()
+        state.initialize_state()
+
+
+@pytest.mark.asyncio
+async def test_hard_cooldown_blocks_reopening_even_when_values_climb():
+    """Inside the 60 s cooldown nothing re-opens, rising or not."""
+    from ai import clock
+    from ai.orchestrator import AgentOrchestrator
+    from app.models.schemas import Incident, Severity
+    from app.services.state_store import state
+
+    fake = clock.FakeClock()
+    clock.set_clock(fake)
+    try:
+        state.initialize_state()
+        orchestrator = AgentOrchestrator()
+        state.incidents["INC-OLD"] = Incident(
+            id="INC-OLD", type="MACHINE_OVERHEATING", severity=Severity.CRITICAL, confidence=0.9,
+            zone="ZONE_B", timestamp=clock.now(), affected_assets=["M-04"], affected_workers=[],
+            evidence=[], ai_reasoning="resolved earlier", recommended_actions=[],
+            status="RESOLVED", resolved_at=clock.now(),
+        )
+        fake.advance(10.0)
+
+        rising = {
+            "agent_id": "machine_agent", "anomaly": True, "severity": "CRITICAL",
+            "machine_id": "M-04", "zone": "ZONE_B", "pressure": 8.9,
+            "pressure_slope": 1.2, "pressure_slope_known": True,
+            "observation": "pressure 8.90 bar, climbing", "decision": "stop",
+        }
+        await orchestrator._create_or_escalate({
+            "id": "INC-NEW", "type": "MACHINE_OVERHEATING", "severity": Severity.CRITICAL,
+            "confidence": 0.9, "zone": "ZONE_B", "timestamp": clock.now(),
+            "affected_assets": ["M-04"], "affected_workers": [], "evidence": [],
+            "ai_reasoning": "new", "recommended_actions": [], "status": "ACTIVE",
+        }, [rising])
+        assert "INC-NEW" not in state.incidents
+        assert any("cooldown" in l["decision"].lower() for l in state.agent_logs)
+    finally:
+        clock.reset_clock()
+        state.initialize_state()
+
+
+@pytest.mark.asyncio
+async def test_optional_actions_are_cancelled_once_the_hazard_is_addressed():
+    """The resolution rule: STOP_MACHINE completing resolves the incident, and the remaining
+    supporting actions are cancelled as superseded rather than left for the owner to clear."""
+    from app.services.command_engine import command_engine
+    from app.services.state_store import state
+
+    run = await run_scenario("machine_overheating", ticks=12)
+    incident = run.incidents[0]
+    stop = next(a for a in run.actions if a.action_type == "STOP_MACHINE")
+    others = [a for a in run.actions
+              if a.incident_id == incident.id and a.action_type != "STOP_MACHINE"]
+
+    await command_engine.authorize_action(stop.id, authorized_by="owner_01")
+    await command_engine.execute_action(stop.id)
+
+    assert incident.status == "RESOLVED"
+    assert all(a.status.value == "CANCELLED" for a in others), \
+        f"supporting actions should be superseded, got {[(a.action_type, a.status.value) for a in others]}"
+    assert any("superseded" in l["reasoning"] for l in state.agent_logs), \
+        "the cancellation must be explained in the agent log"
+    try:
+        from iot.simulator import simulator
+        simulator.stopped_machines.clear()
+    except Exception:
+        pass

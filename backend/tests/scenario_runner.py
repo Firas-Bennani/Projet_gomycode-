@@ -42,15 +42,46 @@ FACTORY_RESET_EVENT = {
 }
 
 
+def _make_feeder(orchestrator, fake):
+    """Keep ticking the simulator through the same orchestrator and the same fake clock.
+
+    Used by tests that need to carry on after a run (e.g. authorise everything, then prove
+    nothing re-opens). It manages its own event subscription, because the run restores the
+    original subscribers when it finishes.
+    """
+    async def feed(ticks: int, scenario: str = None, tick_seconds: float = 1.0):
+        local: List[Dict[str, Any]] = []
+        saved = dict(event_bus._subscribers)
+        event_bus._subscribers.clear()
+        event_bus.subscribe("*", lambda evt: local.append(evt))
+        try:
+            if scenario:
+                simulator.tick_count = 0
+                simulator.set_scenario(scenario)
+            for _ in range(ticks):
+                fake.advance(tick_seconds)
+                await simulator.tick()
+                batch = [e for e in local if e["event_type"] in PLANT_EVENT_TYPES]
+                local.clear()
+                for event in batch:
+                    await orchestrator.handle_event(event)
+        finally:
+            event_bus._subscribers.clear()
+            event_bus._subscribers.update(saved)
+    return feed
+
+
 async def run_scenario(
     scenario: str,
     ticks: int = 12,
     seed: int = 42,
     tick_seconds: float = 1.0,
     extra_events: List[Dict[str, Any]] = None,
+    keep_clock: bool = False,
 ) -> SimpleNamespace:
     return await run_scenario_sequence(
-        [(scenario, ticks)], seed=seed, tick_seconds=tick_seconds, extra_events=extra_events
+        [(scenario, ticks)], seed=seed, tick_seconds=tick_seconds, extra_events=extra_events,
+        keep_clock=keep_clock,
     )
 
 
@@ -60,6 +91,7 @@ async def run_scenario_sequence(
     tick_seconds: float = 1.0,
     factory_reset_between: bool = False,
     extra_events: List[Dict[str, Any]] = None,
+    keep_clock: bool = False,
 ) -> SimpleNamespace:
     """Drive several scenarios through ONE orchestrator, as the demo bar does.
 
@@ -73,10 +105,21 @@ async def run_scenario_sequence(
     state.initialize_state()
     orchestrator = AgentOrchestrator()
 
+    # P5 left these set by a previous run; a fresh scenario must ramp normally again.
+    simulator.stopped_machines.clear()
+    simulator.cooling_active = False
+    simulator.suppression_active = False
+
     collected: List[Dict[str, Any]] = []
+    published: List[Dict[str, Any]] = []      # every event, including what the AI layer emits
     saved_subscribers = dict(event_bus._subscribers)
     event_bus._subscribers.clear()
-    event_bus.subscribe("*", lambda evt: collected.append(evt))
+
+    def _collect(event):
+        collected.append(event)
+        published.append(event)
+
+    event_bus.subscribe("*", _collect)
 
     try:
         for index, (scenario, ticks) in enumerate(steps):
@@ -99,7 +142,11 @@ async def run_scenario_sequence(
         event_bus._subscribers.clear()
         event_bus._subscribers.update(saved_subscribers)
         await cancel_stray_tasks()
-        clock.reset_clock()
+        # keep_clock leaves the fake clock installed so a test can carry on from where the run
+        # stopped. Restarting it would put `resolved_at` in the future, which silently disables
+        # the cooldown and the re-open guard.
+        if not keep_clock:
+            clock.reset_clock()
         simulator.set_scenario("normal")
 
     return SimpleNamespace(
@@ -108,4 +155,8 @@ async def run_scenario_sequence(
         actions=list(state.actions.values()),
         logs=list(state.agent_logs),
         types=[i.type for i in state.incidents.values()],
+        published=published,
+        events_of=lambda event_type: [e for e in published if e["event_type"] == event_type],
+        clock=fake,
+        feed=_make_feeder(orchestrator, fake),
     )

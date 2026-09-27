@@ -42,6 +42,10 @@ class CatalogEntry:
     #: Incident types this action may be proposed for.
     hazards: List[str] = field(default_factory=list)
     target_pattern: Optional[str] = None
+    #: True when carrying this action out removes the *cause* of the hazard, so the incident
+    #: can be resolved once it completes (see ai/resolution_policy.py). Actions that protect
+    #: people or limit spread without removing the cause are False.
+    resolves_hazard: bool = False
 
     def resolve_target(self, context: Dict[str, Any]) -> str:
         zone = context.get("zone", "ZONE_B")
@@ -82,6 +86,7 @@ CATALOG: Dict[str, CatalogEntry] = {
             target_kind=TARGET_MACHINE,
             reason="Prevent hydraulic rupture and spindle seizure; stops production.",
             hazards=[OVERHEAT, FIRE],
+            resolves_hazard=True,
         ),
         CatalogEntry(
             id="activate_cooling",
@@ -143,6 +148,7 @@ CATALOG: Dict[str, CatalogEntry] = {
             target_pattern="SUPPRESSION-{letter}-01",
             reason="Extinguish the combustion source once personnel are clear.",
             hazards=[FIRE],
+            resolves_hazard=True,
         ),
         # ---- cyber -----------------------------------------------------------------
         CatalogEntry(
@@ -155,6 +161,7 @@ CATALOG: Dict[str, CatalogEntry] = {
             target_kind=TARGET_DEVICE,
             reason="Cut an unregistered device off the industrial fieldbus.",
             hazards=[CYBER],
+            resolves_hazard=True,
         ),
         CatalogEntry(
             id="vlan_quarantine",

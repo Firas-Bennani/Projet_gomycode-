@@ -56,6 +56,12 @@ class CommandEngine:
             zone="ZONE_B",
             severity="INFO"
         )
+
+        # --- Engineer 1: a cancel can be the last terminal action for the incident --------
+        from ai.resolution_policy import evaluate_incident_after
+        await evaluate_incident_after(action)
+        # ---------------------------------------------------------------------------------
+
         return action.model_dump(mode="json")
 
     async def execute_action(self, action_id: str):
@@ -80,6 +86,22 @@ class CommandEngine:
         # Apply action effect to simulated environment
         target = action.target
         checks = []
+
+        # --- Engineer 1 (P5, authorised by Firas 2026-09-27 04:20) -----------------------
+        # Let the simulator know this asset has been dealt with, so it stops driving the
+        # scenario curve over a machine we just shut down. Without this the readings snap
+        # back to 8.9 bar on the next tick and a brand-new incident opens immediately.
+        try:
+            from iot.simulator import simulator
+            if action.action_type == "STOP_MACHINE":
+                simulator.stopped_machines.add(target)
+            elif action.action_type == "ACTIVATE_COOLING":
+                simulator.cooling_active = True
+            elif action.action_type == "ACTIVATE_SUPPRESSION":
+                simulator.suppression_active = True
+        except Exception as exc:  # never let this affect the action itself
+            logger.warning("Could not notify the simulator about %s: %s", action.action_type, exc)
+        # ---------------------------------------------------------------------------------
 
         if action.action_type == "STOP_MACHINE":
             if target in state.machines:
@@ -144,30 +166,13 @@ class CommandEngine:
             severity="INFO"
         )
 
-        # Verification step: if all actions for an incident are completed, resolve the incident!
-        inc_id = action.incident_id
-        if inc_id and inc_id in state.incidents:
-            incident = state.incidents[inc_id]
-            # Check remaining actions
-            incident_actions = [a for a in state.actions.values() if a.incident_id == inc_id]
-            all_done = all(a.status in [ActionStatus.COMPLETED, ActionStatus.CANCELLED] for a in incident_actions)
-            if all_done:
-                incident.status = "RESOLVED"
-                incident.resolved_at = datetime.utcnow()
-                # Restore zone status
-                zone = incident.zone
-                if zone in state.zones:
-                    state.zones[zone].status = "NORMAL"
-                    state.zones[zone].risk_level = None
-                    if inc_id in state.zones[zone].active_incidents:
-                        state.zones[zone].active_incidents.remove(inc_id)
-
-                await event_bus.publish(
-                    event_type="INCIDENT_UPDATED",
-                    source="command_engine:verification",
-                    data=incident.model_dump(mode="json"),
-                    zone=zone,
-                    severity="INFO"
-                )
+        # --- Engineer 1: resolution rule lives in ai/resolution_policy.py ----------------
+        # Resolve when every hazard-resolving action has completed AND the readings are
+        # receding; superseded pending actions are cancelled with a reason. Falls back to the
+        # original "all actions terminal" rule. Replaces the inline block that used to live
+        # here, which kept incidents open on optional unapproved actions.
+        from ai.resolution_policy import evaluate_incident_after
+        await evaluate_incident_after(action)
+        # ---------------------------------------------------------------------------------
 
 command_engine = CommandEngine()

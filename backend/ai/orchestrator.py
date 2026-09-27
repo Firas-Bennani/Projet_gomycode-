@@ -25,6 +25,13 @@ RESOLVED_COOLDOWN_S = 60.0
 #: Do not repeat the same "waiting for corroboration" note more often than this.
 GAP_LOG_INTERVAL_S = 10.0
 
+#: For this long after a hazard was resolved in a zone, a new incident of the same type is
+#: only opened if the readings are actually climbing again. Found at GATE 1: the remedy brings
+#: the machine down, but any lingering high reading re-opened the incident the operator had
+#: just closed. Only applies to hazards with a continuous measurement.
+REOPEN_REQUIRE_RISING_S = 300.0
+REOPEN_RISING_TYPES = ("MACHINE_OVERHEATING", "INDUSTRIAL_FIRE")
+
 
 class AgentOrchestrator:
     def __init__(self):
@@ -192,6 +199,33 @@ class AgentOrchestrator:
                 remaining = max(remaining, RESOLVED_COOLDOWN_S - elapsed)
         return remaining
 
+    def _seconds_since_resolved(self, incident_type: str, zone: str) -> Optional[float]:
+        """Age of the most recent resolution of this hazard in this zone, or None."""
+        now = clock.now()
+        newest = None
+        for existing in state.incidents.values():
+            if existing.type != incident_type or existing.zone != zone or not existing.resolved_at:
+                continue
+            age = (now - existing.resolved_at).total_seconds()
+            if age < 0:
+                continue
+            newest = age if newest is None else min(newest, age)
+        return newest
+
+    @staticmethod
+    def _evidence_rising(observations: List[Dict[str, Any]]) -> tuple:
+        """Is any measured source still climbing? Returns (rising, human-readable detail)."""
+        for obs in observations:
+            if obs.get("agent_id") == "machine_agent" and obs.get("pressure_slope_known"):
+                slope = obs.get("pressure_slope", 0.0)
+                if slope > 0.05:
+                    return True, f"{obs.get('machine_id')} pressure is rising {slope:+.2f} bar/min"
+            if obs.get("agent_id") == "temperature_agent" and obs.get("rate_known"):
+                rate = obs.get("rate_of_change", 0.0)
+                if rate > 0.2:
+                    return True, f"{obs.get('sensor_id')} is rising {rate:+.1f} {obs.get('unit', '')}/min"
+        return False, "no source is trending upward, so the hazard is receding rather than returning"
+
     async def _create_or_escalate(self, incident_data: Dict[str, Any], observations: List[Dict[str, Any]]):
         incident_type = incident_data["type"]
         zone = incident_data["zone"]
@@ -200,6 +234,20 @@ class AgentOrchestrator:
         if open_incident is not None:
             await self._escalate(open_incident, incident_data, observations)
             return
+
+        # Values must be climbing again before a just-closed hazard may re-open.
+        since_resolved = self._seconds_since_resolved(incident_type, zone)
+        if (incident_type in REOPEN_RISING_TYPES and since_resolved is not None
+                and since_resolved < REOPEN_REQUIRE_RISING_S):
+            rising, detail = self._evidence_rising(observations)
+            if not rising:
+                self._log_gap(
+                    zone,
+                    f"{incident_type} thresholds are still exceeded in {zone} "
+                    f"{since_resolved:.0f}s after the previous incident was resolved, but {detail}.",
+                    observations,
+                )
+                return
 
         cooldown = self._cooldown_remaining(incident_type, zone)
         if cooldown > 0:
@@ -317,6 +365,8 @@ class AgentOrchestrator:
         state.risks[risk_id] = risk
 
         # Create actionable items in Command Center
+        created_actions: List[Action] = []
+        auto_execute: List[str] = []
         for rec in incident.recommended_actions:
             action_id = f"ACT-{uuid.uuid4().hex[:4].upper()}"
             act = Action(
@@ -331,11 +381,9 @@ class AgentOrchestrator:
                 created_by="recommendation_agent"
             )
             state.actions[action_id] = act
-
+            created_actions.append(act)
             if not rec.requires_confirmation:
-                # Automatic execution for LOW risk
-                from app.services.command_engine import command_engine
-                asyncio.create_task(command_engine.execute_action(action_id))
+                auto_execute.append(action_id)   # started below, after the broadcasts
 
         self._log_agent_step(
             "recommendation_agent",
@@ -350,7 +398,9 @@ class AgentOrchestrator:
         from ai.n8n_client import notify_incident_background
         notify_incident_background(incident, observations)
 
-        # Broadcast incident to Frontend
+        # Broadcast the incident first, then each action it created. Announcing the actions is
+        # what was missing at GATE 1: the Command Center only learned about pending actions on
+        # a page refresh, so the AUTHORIZE button did not appear until the operator pressed F5.
         await event_bus.publish(
             event_type="INCIDENT_CREATED",
             source="ai:orchestrator",
@@ -359,6 +409,16 @@ class AgentOrchestrator:
             severity=incident.severity.value,
             correlation_id=inc_id
         )
+
+        from ai.action_events import publish_actions
+        await publish_actions(created_actions, source="ai:orchestrator")
+
+        # Only now start the LOW-risk automatic actions, so their IN_PROGRESS/COMPLETED events
+        # can never arrive before the action itself has been announced.
+        if auto_execute:
+            from app.services.command_engine import command_engine
+            for action_id in auto_execute:
+                asyncio.create_task(command_engine.execute_action(action_id))
 
 
 orchestrator = AgentOrchestrator()

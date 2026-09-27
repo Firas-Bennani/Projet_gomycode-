@@ -114,6 +114,18 @@ def get_resume_url(incident_id: str) -> Optional[str]:
     return RESUME_URLS.get(incident_id)
 
 
+def forget_resume_url(incident_id: str, why: str = "execution finished") -> None:
+    """Drop a resume URL that can no longer be resumed.
+
+    Called when the workflow reports a final status, and when a resume attempt comes back
+    404/410. Stops the backend POSTing an owner decision at a dead n8n execution — which is
+    what happened at GATE 1 when the Wait node timed out before the owner clicked AUTHORIZE.
+    """
+    if RESUME_URLS.pop(incident_id, None) is not None:
+        logger.info("Forgot the resume URL for %s (%s).", incident_id, why)
+        _note(incident_id, "RESUME_URL_DROPPED", why)
+
+
 def clear_resume_urls() -> None:
     RESUME_URLS.clear()
     LAST_EXCHANGE.clear()
@@ -219,6 +231,32 @@ async def send_decision(incident_id: str, decision: str, action_id: str, by: str
         import httpx
         async with httpx.AsyncClient(timeout=timeout_seconds()) as client:
             response = await client.post(url, json=body)
+        if response.status_code in (404, 409, 410):
+            # The execution is no longer waiting. Two very different reasons, and the debug view
+            # must not confuse them:
+            #   - a previous action already resumed it (a Wait node resumes exactly once), or
+            #   - its approval window expired before anyone decided.
+            # Either way the action still executes normally on our side.
+            already_resumed = LAST_EXCHANGE.get(incident_id, {}).get("status") == "RESUMED"
+            if already_resumed:
+                RESUME_URLS.pop(incident_id, None)
+                logger.info(
+                    "n8n execution for %s was already resumed by an earlier decision (HTTP %s); "
+                    "nothing more to deliver for %s.",
+                    incident_id, response.status_code, action_id,
+                )
+                return False
+            forget_resume_url(
+                incident_id,
+                f"n8n returned HTTP {response.status_code}; the execution had already finished "
+                f"(its approval window most likely expired) so decision={decision} was not delivered",
+            )
+            logger.info(
+                "No live n8n execution to resume for %s (HTTP %s). The action proceeds regardless.",
+                incident_id, response.status_code,
+            )
+            return False
+
         ok = response.status_code < 400
         _note(incident_id, "RESUMED" if ok else "RESUME_FAILED",
               f"decision={decision} action={action_id} HTTP {response.status_code}")

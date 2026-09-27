@@ -221,12 +221,19 @@ def test_status_never_moves_an_incident_backwards():
 
 
 def test_escalated_keeps_the_incident_visible_and_raises_severity():
+    """Updated after GATE 1: Firas asked for ESCALATED to be the visible status.
+
+    DetectionsView lists every incident regardless of status, so the card stays on screen; what
+    changes is that it no longer counts towards "ACTIVE ALERTS" (noted for Engineers 3/4 in
+    PROPOSED_CHANGES_FOR_TEAM.md) and the banner makes the escalation readable.
+    """
     incident = seed_incident()
     incident.severity = Severity.WARNING
     body = client.post("/api/ai/n8n/status/INC-TEST", json={"status": "ESCALATED", "note": "no decision"}).json()
     assert body["reported"] == "ESCALATED"
-    assert incident.status == "ACTIVE", "an escalated incident must stay on screen"
+    assert incident.status == "ESCALATED"
     assert incident.severity == Severity.CRITICAL
+    assert incident.ai_reasoning.startswith("!! ESCALATED:")
 
 
 def test_status_rejects_an_unknown_value():
@@ -360,3 +367,123 @@ def test_escalation_still_replaces_a_non_enriched_explanation():
         )
     )
     assert incident.ai_reasoning == "FRESH TEMPLATE TEXT"
+
+
+# --------------------------------------------------------------------- GATE 1: timeout path
+
+def test_wait_timeout_escalates_and_is_visible_on_the_incident_card():
+    """GATE 1 issue 2: the Wait node's window expired before the owner could authorise.
+
+    The workflow then posts ESCALATED. The dashboard renders `ai_reasoning` on the incident
+    card but never renders `status`, so the escalation has to be written into the explanation
+    to be visible at all.
+    """
+    incident = seed_incident()
+    incident.severity = Severity.WARNING
+    original = incident.ai_reasoning
+
+    response = client.post("/api/ai/n8n/status/INC-TEST", json={
+        "status": "ESCALATED",
+        "note": "No owner decision in 10 min -> escalated. Nobody acted on the recommendation "
+                "inside the approval window, so this incident needs a human now.",
+    })
+    assert response.status_code == 200
+    assert response.json()["reported"] == "ESCALATED"
+
+    assert incident.status == "ESCALATED"
+    assert incident.severity == Severity.CRITICAL, "an unattended incident must not stay at WARNING"
+    assert incident.ai_reasoning.startswith("!! ESCALATED:")
+    assert "No owner decision in 10 min" in incident.ai_reasoning
+    assert original in incident.ai_reasoning, "the original explanation must be kept below the banner"
+
+    log = next(l for l in state.agent_logs if l["agent_id"] == "recommendation_agent (n8n)")
+    assert "ESCALATED" in log["decision"]
+    assert "No owner decision in 10 min" in log["reasoning"]
+
+
+def test_escalation_banner_is_replaced_not_stacked():
+    incident = seed_incident()
+    for _ in range(3):
+        client.post("/api/ai/n8n/status/INC-TEST", json={"status": "ESCALATED", "note": "no decision"})
+    assert incident.ai_reasoning.count("!! ESCALATED:") == 1
+
+
+def test_a_final_status_drops_the_resume_url():
+    """A finished execution cannot be resumed, so the backend must stop holding its URL."""
+    seed_incident()
+    client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+        "what": "x", "resume_url": "http://localhost:5678/webhook-waiting/42",
+    })
+    assert n8n_client.get_resume_url("INC-TEST") == "http://localhost:5678/webhook-waiting/42"
+
+    client.post("/api/ai/n8n/status/INC-TEST", json={"status": "ESCALATED", "note": "timed out"})
+    assert n8n_client.get_resume_url("INC-TEST") is None, \
+        "after a final status there is nothing left to resume"
+
+
+@pytest.mark.asyncio
+async def test_authorizing_after_a_timeout_does_not_post_to_a_dead_execution():
+    """GATE 1 issue 2, third part: the owner authorised 8 minutes late.
+
+    The action must still execute normally, and the backend must not fire a decision at an
+    execution that has already finished.
+    """
+    from app.services.command_engine import command_engine
+
+    seed_incident()
+    action = seed_action("STOP_MACHINE", ActionStatus.AWAITING_APPROVAL)
+    client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+        "what": "x", "resume_url": "http://127.0.0.1:1/webhook-waiting/42",
+    })
+    # The workflow times out and reports ESCALATED, which drops the resume URL.
+    client.post("/api/ai/n8n/status/INC-TEST", json={"status": "ESCALATED", "note": "timed out"})
+
+    calls = []
+
+    async def _fail_if_called(*args, **kwargs):
+        calls.append(args)
+        return False
+
+    import ai.n8n_client as client_module
+    original = client_module.send_decision
+    client_module.send_decision = _fail_if_called
+    try:
+        result = await command_engine.authorize_action(action.id, authorized_by="owner_01")
+    finally:
+        client_module.send_decision = original
+
+    assert result is not None, "the action must still be authorised"
+    assert action.status == ActionStatus.AUTHORIZED
+    assert calls == [], "no decision may be sent to a finished n8n execution"
+
+
+@pytest.mark.asyncio
+async def test_a_dead_resume_url_is_reported_cleanly_not_as_an_error():
+    """If we do try a stale URL, a 404/410 is a normal outcome, logged and forgotten."""
+    seed_incident()
+    n8n_client.register_resume_url("INC-TEST", "http://localhost:5678/webhook-waiting/stale")
+
+    class _Response:
+        status_code = 404
+
+    class _Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def post(self, url, json=None):
+            return _Response()
+
+    import httpx
+    original = httpx.AsyncClient
+    httpx.AsyncClient = lambda *a, **k: _Client()
+    try:
+        assert await n8n_client.send_decision("INC-TEST", "approve", "ACT-TEST", "owner_01") is False
+    finally:
+        httpx.AsyncClient = original
+
+    assert n8n_client.get_resume_url("INC-TEST") is None
+    assert n8n_client.LAST_EXCHANGE["INC-TEST"]["status"] == "RESUME_URL_DROPPED"
+    assert "already finished" in n8n_client.LAST_EXCHANGE["INC-TEST"]["detail"]

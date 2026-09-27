@@ -22,7 +22,7 @@ WEBHOOK = "Incident webhook"
 TEMPLATE = "Template recommendation"
 VALIDATE = "Validate against allowed_actions"
 ENRICH = "POST enrichment"
-WAIT_DECISION = "Wait for owner decision"
+WAIT_DECISION = "Wait for owner decision (10 min)"
 APPROVED = "Approved?"
 WAIT_SETTLE = "Wait 15s for the plant to settle"
 VERIFY = "GET verify"
@@ -91,7 +91,7 @@ return [{ json: { ...item, recommended_action_ids: validated, rejected_action_id
 """.strip()
 
 OUTCOME_CODE = """
-// The Wait node resumes either because the owner decided, or because its 180 s limit expired.
+// The Wait node resumes either because the owner decided, or because its 10 minute limit expired.
 // Distinguish the two: a cancel is a human decision, a timeout is an unattended incident.
 const decision = ($json.body && $json.body.decision) || $json.decision || 'timeout';
 const cancelled = decision === 'cancel';
@@ -101,7 +101,8 @@ return [{
     status: cancelled ? 'DISMISSED' : 'ESCALATED',
     note: cancelled
       ? 'Owner cancelled the recommended action in the dashboard; incident dismissed by human decision.'
-      : 'No owner decision within the 180 s approval window; escalated for human handling.',
+      : 'No owner decision in 10 min -> escalated. Nobody acted on the recommendation inside the '
+        + 'approval window, so this incident needs a human now.',
   },
 }];
 """.strip()
@@ -195,8 +196,8 @@ nodes = [
             "httpMethod": "POST",
             "responseMode": "onReceived",
             "limitWaitTime": True,
-            "resumeAmount": 180,
-            "resumeUnit": "seconds",
+            "resumeAmount": 10,
+            "resumeUnit": "minutes",
             "options": {},
         },
         "id": nid(WAIT_DECISION),

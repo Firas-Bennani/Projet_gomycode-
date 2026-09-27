@@ -290,3 +290,100 @@ and the incident resolved.
    AUTHORIZE, and tell me what the incident panel, the action status and the 3D view do, plus
    whether the n8n Executions tab goes green.
 4. Nothing needs your clicks before that. Push is done, so the work is safe.
+
+---
+
+## GATE 1 fixes — DONE (2026-09-27 ~05:05)
+
+All six items from Firas's GATE 1 report. Verified live with `n8n/gate1_verify.py`
+(**13/13**), `n8n/e2e_test.py` (**15/15**) and **64 pytest tests**.
+
+### 1. Actions only appeared after F5 — FIXED
+
+`command_engine` published `ACTION_STATUS` on authorise/execute/complete, but **nothing
+published when an action was created**. The dashboard keeps its own list from `ACTION_STATUS`
+events (`frontend/src/App.tsx:112`), so a pending action never reached the Command Center and
+the AUTHORIZE button only appeared after a refetch.
+
+New `backend/ai/action_events.py` publishes `ACTION_STATUS` with `data` = the serialised
+`Action` — the exact payload the frontend already consumes. Called from the orchestrator when
+actions are created, from the n8n bridge when enrichment adds one, and from the resolution
+policy when one is superseded. Ordering is now deliberate: `INCIDENT_CREATED` first, then each
+action, and only then are LOW-risk automatic actions started, so a completion can never be
+announced before the action itself. No frontend change needed.
+
+### 2. n8n Wait node timed out at 180 s — FIXED
+
+- Approval window raised to **10 minutes** (`resumeAmount: 10, resumeUnit: "minutes"`).
+- On timeout the workflow posts `ESCALATED`; the bridge now sets `incident.status = "ESCALATED"`,
+  raises severity to CRITICAL, and prepends a banner to `ai_reasoning`
+  (`!! ESCALATED: No owner decision in 10 min -> escalated …`) because the incident card renders
+  the reasoning but never renders `status` (see P7 for the nicer frontend fix).
+- Agent log records it under `recommendation_agent (n8n)`.
+- **Authorising after a timeout** now executes normally and never POSTs to a dead execution: any
+  terminal status drops the stored resume URL, and a 404/409/410 is logged as a normal outcome.
+  It also distinguishes *"an earlier decision already resumed it"* (a Wait node resumes exactly
+  once, so the 2nd and 3rd AUTHORIZE legitimately get 409) from *"the window expired"*.
+
+### 3. P5 — APPLIED to `backend/iot/simulator.py` (authorised)
+
+Marked with `P5 (Engineer 1)` comments and written up in `PROPOSED_CHANGES_FOR_TEAM.md` with a
+"please review" note for Engineer 2. Once `STOP_MACHINE` / cooling / suppression completes, the
+readings decay exponentially to baseline and stay there until reset; the machine reports `INFO`.
+Live result: **M-04 settles at 5.2 bar / 43.4 °C / INFO** instead of snapping back to 8.93 bar.
+`telemetry_consistent` is now `true` in `/verify`, where it used to be `false`.
+
+### 4. Re-opening rule — FIXED
+
+`REOPEN_REQUIRE_RISING_S = 300`: for 5 minutes after a hazard is resolved in a zone, a new
+incident of that type is only opened if a measured source is **actually climbing again**
+(`pressure_slope > 0.05` bar/min, or a temperature/smoke rate > 0.2/min). The 60 s hard cooldown
+still applies first and blocks everything, rising or not. Only for hazards with a continuous
+measurement (`MACHINE_OVERHEATING`, `INDUSTRIAL_FIRE`) — an intrusion has no analogue reading, so
+it keeps only the cooldown.
+
+### 5. Resolution rule — CHOSEN AND IMPLEMENTED
+
+New `backend/ai/resolution_policy.py`. **An incident resolves when every _hazard-resolving_
+action recommended for it has COMPLETED and the hazard is measurably receding.** Remaining
+actions that nobody has approved yet are cancelled as *superseded*, with the reason in the agent
+log. Actions already authorised are left to finish — they are in flight at an actuator.
+
+`resolves_hazard` is a new flag per catalogue entry: `STOP_MACHINE`, `ACTIVATE_SUPPRESSION`,
+`ISOLATE_DEVICE`. `EVACUATE_ZONE`, `ACTIVATE_COOLING`, `TRIGGER_ALARM`, `CLOSE_DOOR` and
+`VLAN_QUARANTINE` protect people or limit spread but never resolve on their own. "Receding" is
+measured per hazard: machine parameters back inside their thresholds, or smoke below its warning
+level; containment is the resolution for an intrusion. The old "all actions terminal" rule
+remains as a fallback. `command_engine`'s inline resolve block was replaced by a two-line call.
+
+**Demo consequence worth knowing:** authorising **only STOP_MACHINE** now resolves the incident
+and cancels the other two cards. Authorising all three also works. Either is a clean demo — the
+one-click version is the stronger story.
+
+### 6. Pressure tile — REPORTED, NOT FIXED (as instructed)
+
+Tile reads `PRES-B-01` (`frontend/src/components/MetricsBar.tsx:19`, Engineers 3/4). Root cause is
+upstream: `iot/simulator.py::_tick_overheating` updates `state.sensors["PRES-B-01"]` but only
+publishes a `SENSOR_READING` for `TEMP-B-01`, so the browser's copy is stale. Written up as **P6**
+with the patch. Not a MetricsBar bug; the AI layer is unaffected (it reads `MACHINE_STATUS`).
+
+### Tests added
+
+- `test_pending_actions_are_announced_on_the_websocket` — payload shape and ordering.
+- `test_authorizing_everything_resolves_and_does_not_reopen` — resolve, then 70 simulated
+  seconds with nothing re-opening, plus the P5 decay assertion.
+- `test_a_resolved_hazard_reopens_only_when_values_climb_again` — the guard in isolation, both
+  directions.
+- `test_hard_cooldown_blocks_reopening_even_when_values_climb`.
+- `test_optional_actions_are_cancelled_once_the_hazard_is_addressed`.
+- `test_wait_timeout_escalates_and_is_visible_on_the_incident_card`, banner-not-stacked,
+  resume-URL-dropped, authorise-after-timeout, dead-URL-handled-cleanly.
+- Runner gained `keep_clock` + `feed()`: restarting the fake clock put `resolved_at` in the
+  future and silently disabled both guards, so an earlier version of the re-open test passed
+  for the wrong reason.
+
+### Known cosmetic issues (not fixed)
+
+- An `ESCALATED` incident drops out of the UI's "ACTIVE ALERTS" count — P7.
+- `GET /api/ai/n8n/state` shows the **last** exchange, so after three AUTHORIZE clicks it shows
+  the third one's 409 rather than the first one's success. The log line now explains it.

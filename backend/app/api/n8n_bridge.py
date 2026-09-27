@@ -36,6 +36,11 @@ N8N_AGENT_ID = "recommendation_agent (n8n)"
 
 VALID_STATUSES = {"ACTIVE", "RESOLVING", "RESOLVED", "ESCALATED", "DISMISSED"}
 
+#: Prefix of the banner prepended to an escalated incident's explanation. The dashboard renders
+#: `ai_reasoning` in full on the incident card but never renders `status`, so this banner is how
+#: an escalation actually becomes visible on screen without touching the frontend.
+ESCALATION_BANNER_MARKER = "!! ESCALATED:"
+
 #: How far through its lifecycle a status is. The workflow reports RESOLVING about 15 s after
 #: approval, by which time command_engine has usually already set RESOLVED. Without this the
 #: incident would visibly bounce backwards from RESOLVED to RESOLVING in the dashboard.
@@ -97,6 +102,15 @@ def _format_sources(sources: List[Any]) -> str:
     return ", ".join(p for p in parts if p)
 
 
+def _with_escalation_banner(reasoning: str, note: str) -> str:
+    """Prepend a single escalation banner, replacing any previous one."""
+    body = reasoning or ""
+    if body.startswith(ESCALATION_BANNER_MARKER):
+        parts = body.split("\n\n", 1)
+        body = parts[1] if len(parts) == 2 else ""
+    return f"{ESCALATION_BANNER_MARKER} {note}\n\n{body}".rstrip()
+
+
 def _existing_action_types(incident_id: str) -> set:
     return {a.action_type for a in state.actions.values() if a.incident_id == incident_id}
 
@@ -118,6 +132,7 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
     context = context_from_incident(incident)
     already = _existing_action_types(incident_id)
     added: List[str] = []
+    added_actions: List[Action] = []
     for entry in accepted:
         if entry.action_type in already:
             continue
@@ -134,6 +149,7 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
             created_by=N8N_AGENT_ID,
         )
         added.append(action_id)
+        added_actions.append(state.actions[action_id])
         already.add(entry.action_type)
 
     # Rebuild the explanation. Confidence stays ours: it comes from sensor fusion, not the LLM.
@@ -179,6 +195,11 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
         severity=incident.severity.value,
         correlation_id=incident_id,
     )
+
+    # Announce any action this enrichment created, or the Command Center would not show it
+    # until the next page refresh.
+    from ai.action_events import publish_actions
+    await publish_actions(added_actions, source="n8n:enrichment")
 
     return {
         "incident_id": incident_id,
@@ -301,9 +322,13 @@ async def set_status(incident_id: str, body: StatusRequest):
     # ESCALATED is a workflow outcome, not an Incident.status the UI knows; keep the incident
     # ACTIVE so it stays on screen and record the escalation in the log and the reasoning.
     if status == "ESCALATED":
-        incident.status = "ACTIVE"
+        incident.status = "ESCALATED"
         if incident.severity != Severity.CRITICAL:
             incident.severity = Severity.CRITICAL
+        incident.ai_reasoning = _with_escalation_banner(
+            incident.ai_reasoning,
+            body.note or "no owner decision within the approval window — this incident needs a human now.",
+        )
     elif PROGRESS_RANK.get(status, 0) < PROGRESS_RANK.get(incident.status, 0):
         _log(
             N8N_AGENT_ID,
@@ -324,12 +349,18 @@ async def set_status(incident_id: str, body: StatusRequest):
                 if incident_id in zone.active_incidents:
                     zone.active_incidents.remove(incident_id)
 
+    # The workflow has reached a terminal node, so its Wait node can never be resumed again.
+    # Dropping the URL stops a late AUTHORIZE from POSTing at a dead execution.
+    if status in ("RESOLVED", "RESOLVING", "ESCALATED", "DISMISSED"):
+        n8n_client.forget_resume_url(incident_id, f"workflow reported {status}")
+
     _log(
         N8N_AGENT_ID,
         ["n8n:incident_response"],
         body.note or f"Workflow reported {status} for {incident_id}.",
         f"Status {previous} -> {status}"
-        + (" (incident kept ACTIVE and raised to CRITICAL for human handling)" if status == "ESCALATED" else ""),
+        + (" (raised to CRITICAL and flagged on the incident card for human handling)"
+           if status == "ESCALATED" else ""),
     )
 
     await event_bus.publish(
