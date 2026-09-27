@@ -17,6 +17,18 @@ class IoTSimulator:
         self.tick_count = 0
         self.lifecycle_phase = "IDLE"  # IDLE, DEVELOPING, DETECTED, INCIDENT_ACTIVE, ACTION_EXECUTING, COOLING_DOWN, VERIFYING, RESOLVED
         self.cooling_down = False
+        # ---- P5 (Firas): once the copilot's remedy has been executed, the simulator
+        # must stop driving the fault. command_engine sets these when the matching
+        # action reaches COMPLETED.
+        self.stopped_machines: set = set()
+        self.cooling_active: bool = False
+        self.suppression_active: bool = False
+
+    @staticmethod
+    def _decay(current: float, baseline: float, rate: float = 0.35) -> float:
+        """Exponential approach to a baseline: fast at first, then settles and stays."""
+        value = current + (baseline - current) * rate
+        return baseline if abs(value - baseline) < 0.05 else value
 
     async def start(self):
         self.running = True
@@ -43,6 +55,10 @@ class IoTSimulator:
         self.scenario_step = 0
         self.cooling_down = False
         self.lifecycle_phase = "IDLE"
+        # P5 (Firas): forget remediations so a fresh demo run ramps normally again.
+        self.stopped_machines.clear()
+        self.cooling_active = False
+        self.suppression_active = False
         state.initialize_state()
         await event_bus.publish(
             event_type="FACTORY_RESET",
@@ -191,6 +207,21 @@ class IoTSimulator:
         idx = min(step - 1, len(temp_curve) - 1)
         cur_temp = temp_curve[idx] + random.uniform(-0.2, 0.2)
         cur_pres = pres_curve[idx] + random.uniform(-0.05, 0.05)
+        cur_vib = 3.5 + (idx * 0.4)
+
+        # ---- P5 (Engineer 1) ------------------------------------------------------------
+        # M-04 has been shut down and/or cooling is running: decay to the safe baseline and
+        # stay there until reset, instead of snapping back onto the fault curve.
+        remedied = ("M-04" in self.stopped_machines) or self.cooling_active
+        if remedied:
+            prev_temp = state.sensors["TEMP-B-01"].current_value if "TEMP-B-01" in state.sensors else 26.0
+            prev_pres = state.sensors["PRES-B-01"].current_value if "PRES-B-01" in state.sensors else 5.2
+            cur_temp = self._decay(prev_temp, 25.5)
+            cur_pres = self._decay(prev_pres, 5.2)
+            cur_vib = self._decay(cur_vib if idx == 0 else
+                                  state.machines["M-04"].parameters["vibration"].value
+                                  if "M-04" in state.machines else 2.4, 0.2)
+        # ---------------------------------------------------------------------------------
 
         if cur_temp >= 50.0 or cur_pres >= 8.0:
             self.lifecycle_phase = "INCIDENT_ACTIVE"
@@ -207,13 +238,22 @@ class IoTSimulator:
 
         if "M-04" in state.machines:
             m = state.machines["M-04"]
-            m.status = Severity.CRITICAL if (cur_temp >= 50 or cur_pres >= 8.0) else Severity.WARNING
-            m.parameters["temperature"].value = round(cur_temp + 35.0, 1)
+            # P5 (Engineer 1): a remedied machine reports nominal, and its body temperature
+            # follows the calm offset used by the normal scenario rather than the fault one.
+            if remedied:
+                m.status = Severity.INFO
+                body_offset = 18.0
+            else:
+                m.status = Severity.CRITICAL if (cur_temp >= 50 or cur_pres >= 8.0) else Severity.WARNING
+                body_offset = 35.0
+            m.parameters["temperature"].value = round(cur_temp + body_offset, 1)
             m.parameters["temperature"].status = m.status
             m.parameters["pressure"].value = round(cur_pres, 2)
             m.parameters["pressure"].status = m.status
-            m.parameters["vibration"].value = round(3.5 + (idx * 0.4), 2)
-            m.parameters["vibration"].status = Severity.WARNING if idx >= 4 else Severity.INFO
+            m.parameters["vibration"].value = round(cur_vib, 2)
+            m.parameters["vibration"].status = (
+                Severity.INFO if remedied else (Severity.WARNING if idx >= 4 else Severity.INFO)
+            )
 
         await event_bus.publish(
             event_type="SENSOR_READING",
@@ -226,7 +266,7 @@ class IoTSimulator:
                 "zone": "ZONE_B"
             },
             zone="ZONE_B",
-            severity="CRITICAL" if cur_temp >= 50 else "WARNING"
+            severity=("INFO" if remedied else ("CRITICAL" if cur_temp >= 50 else "WARNING"))
         )
 
         await event_bus.publish(
@@ -243,7 +283,7 @@ class IoTSimulator:
                 }
             },
             zone="ZONE_B",
-            severity="CRITICAL" if cur_pres >= 8.0 else "WARNING"
+            severity=("INFO" if remedied else ("CRITICAL" if cur_pres >= 8.0 else "WARNING"))
         )
 
     async def _tick_cyber(self):
@@ -313,12 +353,25 @@ class IoTSimulator:
         elif cur_smoke >= 20.0:
             self.lifecycle_phase = "DETECTED"
 
+        # ---- P5 (Firas) -----------------------------------------------------------------
+        # Suppression has been discharged: let the fire go out instead of re-igniting.
+        if self.suppression_active:
+            prev_smoke = state.sensors["SMOKE-B-01"].current_value if "SMOKE-B-01" in state.sensors else 7.0
+            prev_temp = state.sensors["TEMP-B-01"].current_value if "TEMP-B-01" in state.sensors else 26.0
+            cur_smoke = self._decay(prev_smoke, 7.0)
+            cur_temp = self._decay(prev_temp, 25.5)
+        # ---------------------------------------------------------------------------------
+
         if "TEMP-B-01" in state.sensors:
-            state.sensors["TEMP-B-01"].current_value = cur_temp
-            state.sensors["TEMP-B-01"].status = Severity.CRITICAL
+            sensor = state.sensors["TEMP-B-01"]
+            sensor.current_value = round(cur_temp, 1)
+            sensor.status = (Severity.CRITICAL if cur_temp >= 50 else
+                             Severity.WARNING if cur_temp >= 35 else Severity.INFO)
         if "SMOKE-B-01" in state.sensors:
-            state.sensors["SMOKE-B-01"].current_value = cur_smoke
-            state.sensors["SMOKE-B-01"].status = Severity.CRITICAL
+            sensor = state.sensors["SMOKE-B-01"]
+            sensor.current_value = round(cur_smoke, 1)
+            sensor.status = (Severity.CRITICAL if cur_smoke >= 40 else
+                             Severity.WARNING if cur_smoke >= 20 else Severity.INFO)
 
         await event_bus.publish(
             event_type="SENSOR_READING",
@@ -326,12 +379,12 @@ class IoTSimulator:
             data={
                 "sensor_id": "SMOKE-B-01",
                 "type": "smoke",
-                "value": cur_smoke,
+                "value": round(cur_smoke, 1),
                 "unit": "ppm",
                 "zone": "ZONE_B"
             },
             zone="ZONE_B",
-            severity="CRITICAL"
+            severity=("INFO" if cur_smoke < 20 else "CRITICAL" if cur_smoke >= 40 else "WARNING")
         )
 
 simulator = IoTSimulator()
