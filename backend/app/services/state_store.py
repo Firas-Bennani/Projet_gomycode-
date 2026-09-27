@@ -216,4 +216,53 @@ class StateStore:
             "EVT-03": IndustrialEvent(id="EVT-03", title="Robotic Cell Lubrication & Gripper Inspection", type="MAINTENANCE", scheduled_at="2026-10-05 14:00", zone_id="ZONE_C", machine_id="M-06", status="SCHEDULED"),
         }
 
+        self._load_seed_extensions()
+
+    # ------------------------------------------------------------------------------------
+    # Seed data (Engineer 1, item 3): ADDITIVE only.
+    #
+    # The demo scenarios reference W09/W12/W23/W41/W52, M-01..M-06 and the ZONE_B sensors by id,
+    # so those stay defined above and are never touched here. This appends extra workers and a
+    # real inventory so the Workers and Inventory pages are not nearly empty. Wrapped in
+    # try/except: if a seed file is missing or malformed the platform runs on the hardcoded state
+    # exactly as before.
+    # ------------------------------------------------------------------------------------
+    def _load_seed_extensions(self):
+        import json as _json
+        import pathlib as _pathlib
+        seed_dir = _pathlib.Path(__file__).resolve().parents[1] / "data" / "seed"
+
+        try:
+            payload = _json.loads((seed_dir / "workers.json").read_text(encoding="utf-8"))
+            for row in payload.get("items", []):
+                if row["id"] in self.workers:
+                    continue                      # never overwrite a scenario worker
+                self.workers[row["id"]] = Worker(
+                    id=row["id"], name=row["name"], role=row["role"], zone=row["zone"],
+                    status=row.get("status", "ON_SITE"), entry_time=row.get("entry_time", "08:00"),
+                    working_hours_today=float(row.get("working_hours_today", 0.0)),
+                    ppe=WorkerPPE(**row["ppe"]), alerts=[],
+                    position={"x": 0.0, "y": 0.0, "z": 0.0},
+                )
+            self.worker_details = {row["id"]: row for row in payload.get("items", [])}
+        except Exception as exc:
+            self.worker_details = {}
+            print(f"[state_store] seed workers not loaded ({exc}); using the built-in five.")
+
+        try:
+            payload = _json.loads((seed_dir / "inventory.json").read_text(encoding="utf-8"))
+            for row in payload.get("items", []):
+                self.inventory[row["id"]] = InventoryItem(
+                    id=row["id"], name=row["name"], category=row["category"],
+                    quantity=float(row["stock"]), unit=row["unit"],
+                    low_stock_threshold=float(row["min_threshold"]),
+                    status=row["status"],
+                    consumption_rate=f"{row['daily_consumption']} {row['unit']}/day",
+                )
+            self.inventory_details = {row["id"]: row for row in payload.get("items", [])}
+        except Exception as exc:
+            self.inventory_details = {}
+            print(f"[state_store] seed inventory not loaded ({exc}); using the built-in items.")
+
+
 state = StateStore()

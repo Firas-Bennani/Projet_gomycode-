@@ -1,0 +1,5047 @@
+{
+  "_comment": "30 stock items across raw material, consumables, spare parts and finished goods, each with 30 days of movements. Roughly one in seven is deliberately below its threshold so the low-stock alerts have real data.",
+  "_generated_by": "backend/scripts/generate_seed_data.py",
+  "_seed": 20260927,
+  "items": [
+    {
+      "id": "INV-001",
+      "sku": "RA-1001",
+      "name": "Steel billet S235",
+      "category": "Raw Material",
+      "unit": "kg",
+      "stock": 295.2,
+      "min_threshold": 69.0,
+      "reorder_point": 115.7,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 11,
+      "daily_consumption": 14.1,
+      "days_of_cover": 20.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 469.5,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 12.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 7.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 10.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 9.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 11.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 8.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 18.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 11.1,
+          "received": 231.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 18.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 16.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 9.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 15.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 14.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 17.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 8.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 13.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 19.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 7.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 19.5,
+          "received": 231.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 14.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 13.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 7.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 10.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 20.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 11.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 18.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 19.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 17.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 20.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-002",
+      "sku": "RA-1002",
+      "name": "Aluminium sheet 3mm",
+      "category": "Raw Material",
+      "unit": "kg",
+      "stock": 33.4,
+      "min_threshold": 13.8,
+      "reorder_point": 22.4,
+      "supplier": "Gaz Industriels Tunisie",
+      "lead_time_days": 16,
+      "daily_consumption": 3.8,
+      "days_of_cover": 8.8,
+      "status": "NORMAL",
+      "unit_cost_tnd": 415.56,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 2.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 3.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 2.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 4.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 2.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 4.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 3.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 3.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 2.8,
+          "received": 44.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 2.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 5.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 2.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 4.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 2.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 3.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 1.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 5.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 3.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 2.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 3.8,
+          "received": 44.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 2.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 4.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 5.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 2.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 5.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 2.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 4.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 2.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 2.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 5.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-003",
+      "sku": "RA-1003",
+      "name": "Cast iron block",
+      "category": "Raw Material",
+      "unit": "kg",
+      "stock": 101.9,
+      "min_threshold": 41.4,
+      "reorder_point": 60.7,
+      "supplier": "Sidérurgie Tunisie SA",
+      "lead_time_days": 10,
+      "daily_consumption": 8.6,
+      "days_of_cover": 11.8,
+      "status": "NORMAL",
+      "unit_cost_tnd": 70.01,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 9.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 4.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 5.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 6.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 9.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 12.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 8.2,
+          "received": 121.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 9.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 11.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 8.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 9.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 12.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 10.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 9.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 8.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 6.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 6.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 6.3,
+          "received": 121.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 7.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 11.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 8.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 6.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 8.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 9.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 8.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 5.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 5.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 4.5,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-004",
+      "sku": "RA-1004",
+      "name": "Copper wire 2.5mm",
+      "category": "Raw Material",
+      "unit": "m",
+      "stock": 232.6,
+      "min_threshold": 85.5,
+      "reorder_point": 153.2,
+      "supplier": "Gaz Industriels Tunisie",
+      "lead_time_days": 3,
+      "daily_consumption": 24.2,
+      "days_of_cover": 9.6,
+      "status": "NORMAL",
+      "unit_cost_tnd": 201.15,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 14.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 23.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 34.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 31.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 23.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 34.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 35.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 20.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 13.8,
+          "received": 306.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 21.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 33.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 17.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 34.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 21.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 34.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 14.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 33.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 15.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 14.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 21.2,
+          "received": 306.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 28.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 22.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 23.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 30.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 18.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 23.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 21.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 13.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 25.6,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-005",
+      "sku": "RA-1005",
+      "name": "Brass rod 20mm",
+      "category": "Raw Material",
+      "unit": "kg",
+      "stock": 107.6,
+      "min_threshold": 25.6,
+      "reorder_point": 38.5,
+      "supplier": "Gaz Industriels Tunisie",
+      "lead_time_days": 4,
+      "daily_consumption": 4.5,
+      "days_of_cover": 23.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 453.25,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 5.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 4.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 4.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 5.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 6.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 2.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 6.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 4.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 4.1,
+          "received": 77.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 5.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 6.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 5.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 5.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 5.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 4.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 2.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 3.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 6.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 4.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 3.3,
+          "received": 77.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 2.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 4.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 4.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 3.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 5.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 5.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 6.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 3.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 4.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 3.4,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-006",
+      "sku": "RA-1006",
+      "name": "Stainless coil 304",
+      "category": "Raw Material",
+      "unit": "kg",
+      "stock": 1092.9,
+      "min_threshold": 204.0,
+      "reorder_point": 370.4,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 8,
+      "daily_consumption": 39.0,
+      "days_of_cover": 28.0,
+      "status": "NORMAL",
+      "unit_cost_tnd": 411.67,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 45.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 24.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 21.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 33.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 36.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 21.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 53.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 56.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 27.2,
+          "received": 740.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 43.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 53.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 23.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 37.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 56.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 27.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 56.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 35.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 30.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 26.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 24.7,
+          "received": 740.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 24.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 48.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 33.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 42.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 26.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 30.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 44.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 55.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 52.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 45.4,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-007",
+      "sku": "CO-1007",
+      "name": "Cutting fluid emulsion",
+      "category": "Consumable",
+      "unit": "L",
+      "stock": 47.4,
+      "min_threshold": 68.7,
+      "reorder_point": 104.2,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 10,
+      "daily_consumption": 16.9,
+      "days_of_cover": 2.8,
+      "status": "CRITICAL",
+      "unit_cost_tnd": 239.33,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 18.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 19.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 12.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 16.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 13.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 21.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 14.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 15.1,
+          "received": 208.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 11.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 20.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 8.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 17.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 11.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 8.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 22.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 22.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 9.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 11.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 9.6,
+          "received": 208.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 17.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 19.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 17.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 9.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 16.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 20.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 16.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 11.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 25.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 21.9,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-008",
+      "sku": "CO-1008",
+      "name": "Hydraulic oil ISO 46",
+      "category": "Consumable",
+      "unit": "L",
+      "stock": 332.4,
+      "min_threshold": 139.6,
+      "reorder_point": 212.2,
+      "supplier": "MetalPro Sfax",
+      "lead_time_days": 10,
+      "daily_consumption": 30.8,
+      "days_of_cover": 10.8,
+      "status": "NORMAL",
+      "unit_cost_tnd": 348.98,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 36.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 31.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 31.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 36.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 43.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 36.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 40.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 25.1,
+          "received": 424.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 29.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 26.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 25.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 26.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 35.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 37.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 30.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 42.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 40.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 43.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 38.5,
+          "received": 424.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 35.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 29.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 40.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 28.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 31.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 22.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 31.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 42.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 23.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 36.2,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-009",
+      "sku": "CO-1009",
+      "name": "Welding wire ER70S",
+      "category": "Consumable",
+      "unit": "kg",
+      "stock": 269.3,
+      "min_threshold": 56.8,
+      "reorder_point": 100.2,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 20,
+      "daily_consumption": 10.6,
+      "days_of_cover": 25.4,
+      "status": "NORMAL",
+      "unit_cost_tnd": 338.38,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 7.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 6.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 9.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 14.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 12.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 8.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 11.8,
+          "received": 200.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 6.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 13.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 15.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 15.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 7.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 7.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 9.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 8.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 7.5,
+          "received": 200.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 6.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 6.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 8.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 15.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 12.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 12.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 14.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 14.9,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-010",
+      "sku": "CO-1010",
+      "name": "Abrasive disc 230mm",
+      "category": "Consumable",
+      "unit": "pcs",
+      "stock": 348.8,
+      "min_threshold": 102.7,
+      "reorder_point": 168.5,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 5,
+      "daily_consumption": 25.8,
+      "days_of_cover": 13.5,
+      "status": "NORMAL",
+      "unit_cost_tnd": 332.85,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 16.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 22.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 35.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 30.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 37.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 37.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 28.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 21.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 35.1,
+          "received": 337.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 15.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 26.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 22.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 14.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 30.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 28.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 38.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 21.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 36.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 24.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 31.2,
+          "received": 337.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 13.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 25.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 32.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 33.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 32.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 17.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 33.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 15.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 19.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 20.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-011",
+      "sku": "CO-1011",
+      "name": "Nitrile gloves",
+      "category": "Consumable",
+      "unit": "pairs",
+      "stock": 868.1,
+      "min_threshold": 247.4,
+      "reorder_point": 464.5,
+      "supplier": "Industrial Bearings Co",
+      "lead_time_days": 9,
+      "daily_consumption": 51.5,
+      "days_of_cover": 16.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 353.64,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 50.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 26.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 58.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 42.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 32.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 51.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 59.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 29.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 49.3,
+          "received": 929.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 42.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 31.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 59.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 37.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 57.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 26.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 72.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 41.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 52.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 40.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 41.6,
+          "received": 929.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 74.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 64.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 73.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 39.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 33.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 43.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 55.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 55.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 37.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 67.7,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-012",
+      "sku": "CO-1012",
+      "name": "Coolant filter cartridge",
+      "category": "Consumable",
+      "unit": "pcs",
+      "stock": 180.6,
+      "min_threshold": 58.2,
+      "reorder_point": 85.3,
+      "supplier": "Gaz Industriels Tunisie",
+      "lead_time_days": 12,
+      "daily_consumption": 14.0,
+      "days_of_cover": 12.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 290.19,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 16.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 19.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 8.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 13.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 19.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 18.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 8.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 19.9,
+          "received": 170.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 9.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 19.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 16.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 11.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 10.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 20.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 19.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 13.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 10.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 9.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 12.0,
+          "received": 170.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 14.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 18.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 16.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 16.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 12.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 8.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 12.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 19.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 9.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-013",
+      "sku": "CO-1013",
+      "name": "Degreaser concentrate",
+      "category": "Consumable",
+      "unit": "L",
+      "stock": 385.4,
+      "min_threshold": 134.4,
+      "reorder_point": 246.4,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 19,
+      "daily_consumption": 22.4,
+      "days_of_cover": 17.2,
+      "status": "NORMAL",
+      "unit_cost_tnd": 294.28,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 18.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 21.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 21.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 20.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 31.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 28.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 25.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 28.1,
+          "received": 492.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 12.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 28.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 18.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 30.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 12.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 32.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 17.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 28.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 25.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 26.3,
+          "received": 492.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 26.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 14.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 28.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 32.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 31.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 11.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 32.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 16.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 19.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 29.7,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-014",
+      "sku": "CO-1014",
+      "name": "Argon shielding gas",
+      "category": "Consumable",
+      "unit": "m3",
+      "stock": 207.5,
+      "min_threshold": 316.0,
+      "reorder_point": 459.3,
+      "supplier": "MetalPro Sfax",
+      "lead_time_days": 13,
+      "daily_consumption": 59.7,
+      "days_of_cover": 3.5,
+      "status": "CRITICAL",
+      "unit_cost_tnd": 454.51,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 89.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 57.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 55.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 41.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 89.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 87.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 46.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 88.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 50.3,
+          "received": 918.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 80.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 51.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 59.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 66.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 49.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 44.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 77.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 80.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 85.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 51.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 58.3,
+          "received": 918.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 61.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 48.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 80.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 61.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 53.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 80.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 63.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 64.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 69.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 61.1,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-015",
+      "sku": "SP-1015",
+      "name": "Spindle bearing SKF 6206",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 835.3,
+      "min_threshold": 193.3,
+      "reorder_point": 301.9,
+      "supplier": "Hydro-Tech Tunis",
+      "lead_time_days": 9,
+      "daily_consumption": 44.3,
+      "days_of_cover": 18.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 344.67,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 58.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 48.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 35.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 30.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 46.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 28.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 56.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 39.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 43.4,
+          "received": 603.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 39.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 62.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 31.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 49.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 49.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 38.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 42.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 44.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 61.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 48.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 49.5,
+          "received": 603.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 53.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 40.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 59.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 26.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 59.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 54.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 57.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 29.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 46.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 54.6,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-016",
+      "sku": "SP-1016",
+      "name": "Hydraulic seal kit M-04",
+      "category": "Spare Part",
+      "unit": "kit",
+      "stock": 423.1,
+      "min_threshold": 170.5,
+      "reorder_point": 226.8,
+      "supplier": "Nord Abrasifs",
+      "lead_time_days": 18,
+      "daily_consumption": 35.5,
+      "days_of_cover": 11.9,
+      "status": "NORMAL",
+      "unit_cost_tnd": 304.33,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 26.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 37.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 52.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 48.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 18.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 27.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 48.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 35.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 50.6,
+          "received": 453.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 27.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 35.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 40.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 33.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 34.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 21.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 21.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 46.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 32.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 47.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 48.9,
+          "received": 453.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 32.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 43.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 38.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 23.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 29.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 38.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 32.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 18.3,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-017",
+      "sku": "SP-1017",
+      "name": "Contactor 24V DC",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 168.6,
+      "min_threshold": 85.7,
+      "reorder_point": 145.6,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 7,
+      "daily_consumption": 14.6,
+      "days_of_cover": 11.5,
+      "status": "NORMAL",
+      "unit_cost_tnd": 257.96,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 17.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 15.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 14.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 18.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 17.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 11.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 8.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 9.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 16.8,
+          "received": 291.2
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 8.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 17.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 9.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 10.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 21.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 13.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 10.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 20.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 7.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 15.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 17.1,
+          "received": 291.2
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 16.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 10.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 17.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 12.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 10.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 10.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 9.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 14.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 12.1,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-018",
+      "sku": "SP-1018",
+      "name": "Proximity sensor M12",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 335.5,
+      "min_threshold": 114.0,
+      "reorder_point": 190.4,
+      "supplier": "Hydro-Tech Tunis",
+      "lead_time_days": 4,
+      "daily_consumption": 30.2,
+      "days_of_cover": 11.1,
+      "status": "NORMAL",
+      "unit_cost_tnd": 346.09,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 22.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 25.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 45.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 29.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 44.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 23.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 36.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 22.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 31.5,
+          "received": 380.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 27.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 38.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 33.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 42.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 25.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 16.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 30.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 19.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 32.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 34.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 44.4,
+          "received": 380.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 24.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 15.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 19.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 35.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 23.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 26.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 29.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 29.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 26.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 16.1,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-019",
+      "sku": "SP-1019",
+      "name": "Drive belt A-1250",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 117.3,
+      "min_threshold": 41.3,
+      "reorder_point": 56.3,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 11,
+      "daily_consumption": 13.5,
+      "days_of_cover": 8.7,
+      "status": "NORMAL",
+      "unit_cost_tnd": 469.61,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 13.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 12.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 7.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 11.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 14.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 11.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 20.0,
+          "received": 112.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 18.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 18.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 14.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 15.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 19.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 13.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 7.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 10.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 11.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 8.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 18.7,
+          "received": 112.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 7.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 16.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 18.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 14.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 13.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 11.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 10.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 8.2,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-020",
+      "sku": "SP-1020",
+      "name": "Thermocouple type K",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 309.4,
+      "min_threshold": 117.5,
+      "reorder_point": 190.3,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 18,
+      "daily_consumption": 24.3,
+      "days_of_cover": 12.7,
+      "status": "NORMAL",
+      "unit_cost_tnd": 272.71,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 34.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 35.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 31.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 26.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 24.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 30.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 18.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 33.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 34.1,
+          "received": 380.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 23.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 14.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 17.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 29.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 20.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 29.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 20.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 23.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 34.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 25.3,
+          "received": 380.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 21.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 14.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 20.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 36.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 14.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 23.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 15.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 16.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 27.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 33.5,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-021",
+      "sku": "SP-1021",
+      "name": "Safety relay PNOZ",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 113.4,
+      "min_threshold": 231.1,
+      "reorder_point": 367.6,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 7,
+      "daily_consumption": 43.1,
+      "days_of_cover": 2.6,
+      "status": "CRITICAL",
+      "unit_cost_tnd": 336.99,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 40.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 42.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 38.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 28.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 25.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 44.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 32.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 48.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 27.9,
+          "received": 735.2
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 54.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 25.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 51.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 51.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 41.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 38.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 60.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 56.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 57.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 55.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 57.9,
+          "received": 735.2
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 54.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 44.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 52.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 51.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 29.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 39.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 25.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 33.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 27.1,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-022",
+      "sku": "SP-1022",
+      "name": "Air dryer element",
+      "category": "Spare Part",
+      "unit": "pcs",
+      "stock": 143.4,
+      "min_threshold": 71.8,
+      "reorder_point": 99.6,
+      "supplier": "Sidérurgie Tunisie SA",
+      "lead_time_days": 6,
+      "daily_consumption": 16.7,
+      "days_of_cover": 8.6,
+      "status": "NORMAL",
+      "unit_cost_tnd": 25.13,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 19.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 22.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 16.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 10.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 14.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 13.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 16.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 10.1,
+          "received": 199.2
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 12.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 18.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 16.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 19.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 14.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 15.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 16.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 22.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 19.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 17.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 10.7,
+          "received": 199.2
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 8.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 15.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 10.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 10.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 18.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 13.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 15.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 19.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 24.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 16.4,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-023",
+      "sku": "FI-1023",
+      "name": "Machined flange DN80",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 958.6,
+      "min_threshold": 327.4,
+      "reorder_point": 461.0,
+      "supplier": "Hydro-Tech Tunis",
+      "lead_time_days": 6,
+      "daily_consumption": 55.9,
+      "days_of_cover": 17.1,
+      "status": "NORMAL",
+      "unit_cost_tnd": 399.59,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 70.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 64.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 35.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 28.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 74.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 68.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 81.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 69.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 41.5,
+          "received": 922.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 63.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 42.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 37.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 42.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 80.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 37.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 43.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 79.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 57.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 46.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 36.2,
+          "received": 922.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 67.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 72.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 38.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 51.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 57.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 79.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 52.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 80.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 78.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 60.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-024",
+      "sku": "FI-1024",
+      "name": "Gearbox housing",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 695.6,
+      "min_threshold": 240.3,
+      "reorder_point": 319.2,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 9,
+      "daily_consumption": 44.7,
+      "days_of_cover": 15.6,
+      "status": "NORMAL",
+      "unit_cost_tnd": 27.96,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 28.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 58.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 54.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 52.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 27.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 64.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 43.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 30.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 33.6,
+          "received": 638.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 25.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 25.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 50.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 46.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 66.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 35.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 38.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 65.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 29.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 48.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 48.7,
+          "received": 638.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 26.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 37.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 48.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 42.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 37.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 61.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 49.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 49.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 39.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 47.7,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-025",
+      "sku": "FI-1025",
+      "name": "Valve body 2in",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 568.3,
+      "min_threshold": 147.2,
+      "reorder_point": 260.5,
+      "supplier": "Nord Abrasifs",
+      "lead_time_days": 12,
+      "daily_consumption": 40.3,
+      "days_of_cover": 14.1,
+      "status": "NORMAL",
+      "unit_cost_tnd": 294.48,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 31.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 23.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 50.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 56.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 54.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 37.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 37.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 36.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 51.0,
+          "received": 521.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 43.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 49.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 31.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 34.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 36.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 23.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 56.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 36.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 56.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 50.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 38.6,
+          "received": 521.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 35.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 45.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 31.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 57.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 48.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 33.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 50.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 56.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 36.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 21.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-026",
+      "sku": "FI-1026",
+      "name": "Bracket assembly",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 265.9,
+      "min_threshold": 82.2,
+      "reorder_point": 111.4,
+      "supplier": "ElectroParts Sousse",
+      "lead_time_days": 2,
+      "daily_consumption": 19.5,
+      "days_of_cover": 13.6,
+      "status": "NORMAL",
+      "unit_cost_tnd": 104.47,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 11.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 20.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 21.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 13.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 25.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 22.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 20.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 19.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 10.1,
+          "received": 222.8
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 12.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 28.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 21.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 18.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 12.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 26.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 13.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 17.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 10.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 10.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 22.3,
+          "received": 222.8
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 15.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 12.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 18.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 15.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 14.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 28.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 11.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 19.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 16.8,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-027",
+      "sku": "FI-1027",
+      "name": "Shaft 40x300",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 344.1,
+      "min_threshold": 112.8,
+      "reorder_point": 191.8,
+      "supplier": "Nord Abrasifs",
+      "lead_time_days": 11,
+      "daily_consumption": 34.4,
+      "days_of_cover": 10.0,
+      "status": "NORMAL",
+      "unit_cost_tnd": 392.55,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 29.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 20.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 49.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 45.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 19.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 42.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 22.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 32.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 20.7,
+          "received": 383.6
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 42.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 49.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 45.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 40.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 44.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 48.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 41.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 24.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 27.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 25.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 39.8,
+          "received": 383.6
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 31.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 30.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 19.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 24.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 33.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 26.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 26.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 26.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 47.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 41.8,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-028",
+      "sku": "FI-1028",
+      "name": "Pump casing",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 134.1,
+      "min_threshold": 174.8,
+      "reorder_point": 235.7,
+      "supplier": "MetalPro Sfax",
+      "lead_time_days": 8,
+      "daily_consumption": 49.7,
+      "days_of_cover": 2.7,
+      "status": "CRITICAL",
+      "unit_cost_tnd": 420.56,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 35.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 53.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 64.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 33.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 49.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 38.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 26.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 61.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 59.9,
+          "received": 471.4
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 49.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 65.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 40.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 27.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 66.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 47.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 38.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 61.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 54.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 35.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 52.0,
+          "received": 471.4
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 44.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 65.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 53.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 38.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 34.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 37.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 49.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 72.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 49.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 35.0,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-029",
+      "sku": "FI-1029",
+      "name": "Coupling half",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 895.8,
+      "min_threshold": 202.8,
+      "reorder_point": 336.5,
+      "supplier": "Hydro-Tech Tunis",
+      "lead_time_days": 19,
+      "daily_consumption": 40.8,
+      "days_of_cover": 22.0,
+      "status": "NORMAL",
+      "unit_cost_tnd": 466.81,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 33.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 29.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 45.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 32.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 24.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 26.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 29.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 20.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 56.3,
+          "received": 673.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 40.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 56.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 39.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 45.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 42.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 28.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 21.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 40.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 21.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 27.9,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 31.8,
+          "received": 673.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 59.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 60.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 31.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 24.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 23.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 56.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 47.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 25.6,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 23.8,
+          "received": 0.0
+        }
+      ]
+    },
+    {
+      "id": "INV-030",
+      "sku": "FI-1030",
+      "name": "Cover plate",
+      "category": "Finished Good",
+      "unit": "pcs",
+      "stock": 239.9,
+      "min_threshold": 102.8,
+      "reorder_point": 139.5,
+      "supplier": "Techni-Fluides SARL",
+      "lead_time_days": 8,
+      "daily_consumption": 23.6,
+      "days_of_cover": 10.2,
+      "status": "NORMAL",
+      "unit_cost_tnd": 381.61,
+      "movements_30d": [
+        {
+          "date": "2026-08-28",
+          "issued": 13.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "issued": 17.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "issued": 30.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "issued": 34.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "issued": 12.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "issued": 20.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "issued": 21.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "issued": 18.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "issued": 24.3,
+          "received": 279.0
+        },
+        {
+          "date": "2026-09-06",
+          "issued": 15.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "issued": 13.2,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "issued": 23.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "issued": 27.8,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "issued": 27.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "issued": 19.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "issued": 18.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "issued": 13.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "issued": 32.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "issued": 15.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "issued": 24.8,
+          "received": 279.0
+        },
+        {
+          "date": "2026-09-17",
+          "issued": 31.3,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "issued": 18.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "issued": 24.0,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "issued": 15.1,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "issued": 12.7,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "issued": 28.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "issued": 25.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "issued": 14.4,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "issued": 25.5,
+          "received": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "issued": 22.1,
+          "received": 0.0
+        }
+      ]
+    }
+  ]
+}

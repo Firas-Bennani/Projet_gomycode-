@@ -1,0 +1,1047 @@
+{
+  "_comment": "35 additional workers, ids from W100. The demo workers W09/W12/W23/W41/W52 stay in state_store.py and are NOT listed here, because the simulator and the scenario tests reference them by id.",
+  "_generated_by": "backend/scripts/generate_seed_data.py",
+  "_seed": 20260927,
+  "items": [
+    {
+      "id": "W100",
+      "badge": "BDG-4200",
+      "name": "Sofiene Karoui",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_A",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "OFF_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 7.8,
+      "hours_this_week": 29.4,
+      "overtime_hours": 0.0,
+      "productivity_pct": 92.3,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T04:30",
+      "last_exit": "2026-09-26T16:36"
+    },
+    {
+      "id": "W101",
+      "badge": "BDG-4201",
+      "name": "Rania Jebali",
+      "role": "CNC Technician",
+      "team": "Machining",
+      "zone": "ZONE_A",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 3.3,
+      "hours_this_week": 37.4,
+      "overtime_hours": 0.0,
+      "productivity_pct": 91.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": false,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "First Aid",
+        "Forklift Licence",
+        "ISO 45001 Awareness",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T04:48",
+      "last_exit": "2026-09-26T20:09"
+    },
+    {
+      "id": "W102",
+      "badge": "BDG-4202",
+      "name": "Sonia Gharbi",
+      "role": "Shift Supervisor",
+      "team": "Operations",
+      "zone": "ZONE_A",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 1.8,
+      "hours_this_week": 29.9,
+      "overtime_hours": 0.0,
+      "productivity_pct": 90.8,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "First Aid"
+      ],
+      "last_entry": "2026-09-27T06:53",
+      "last_exit": "2026-09-26T12:32"
+    },
+    {
+      "id": "W103",
+      "badge": "BDG-4203",
+      "name": "Hiba Amri",
+      "role": "Press Operator",
+      "team": "Machining",
+      "zone": "ZONE_A",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 7.8,
+      "hours_this_week": 37.2,
+      "overtime_hours": 0.0,
+      "productivity_pct": 88.1,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "ISO 45001 Awareness",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T04:39",
+      "last_exit": "2026-09-26T18:06"
+    },
+    {
+      "id": "W104",
+      "badge": "BDG-4204",
+      "name": "Rania Zouari",
+      "role": "Maintenance Specialist",
+      "team": "Maintenance",
+      "zone": "ZONE_A",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "OFF_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 6.3,
+      "hours_this_week": 44.4,
+      "overtime_hours": 4.4,
+      "productivity_pct": 97.7,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "First Aid"
+      ],
+      "last_entry": "2026-09-27T05:54",
+      "last_exit": "2026-09-26T13:21"
+    },
+    {
+      "id": "W105",
+      "badge": "BDG-4205",
+      "name": "Hiba Dridi",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_A",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_BREAK",
+      "entry_time": "14:00",
+      "working_hours_today": 5.6,
+      "hours_this_week": 29.1,
+      "overtime_hours": 0.0,
+      "productivity_pct": 96.0,
+      "ppe": {
+        "helmet": false,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Crane Signalling",
+        "First Aid",
+        "Hot Work Permit"
+      ],
+      "last_entry": "2026-09-26T23:02",
+      "last_exit": "2026-09-26T19:10"
+    },
+    {
+      "id": "W106",
+      "badge": "BDG-4206",
+      "name": "Mehdi Karoui",
+      "role": "Quality Controller",
+      "team": "Quality",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 2.4,
+      "hours_this_week": 28.2,
+      "overtime_hours": 0.0,
+      "productivity_pct": 83.4,
+      "ppe": {
+        "helmet": false,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-26T23:33",
+      "last_exit": "2026-09-26T14:07"
+    },
+    {
+      "id": "W107",
+      "badge": "BDG-4207",
+      "name": "Sami Gharbi",
+      "role": "Press Operator",
+      "team": "Machining",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 7.1,
+      "hours_this_week": 39.7,
+      "overtime_hours": 0.0,
+      "productivity_pct": 80.7,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Electrical LV",
+        "Forklift Licence"
+      ],
+      "last_entry": "2026-09-27T03:14",
+      "last_exit": "2026-09-26T19:20"
+    },
+    {
+      "id": "W108",
+      "badge": "BDG-4208",
+      "name": "Mouna Gharbi",
+      "role": "Press Operator",
+      "team": "Machining",
+      "zone": "ZONE_D",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "OFF_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 4.1,
+      "hours_this_week": 32.5,
+      "overtime_hours": 0.0,
+      "productivity_pct": 80.1,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "First Aid",
+        "Forklift Licence"
+      ],
+      "last_entry": "2026-09-27T04:14",
+      "last_exit": "2026-09-26T13:13"
+    },
+    {
+      "id": "W109",
+      "badge": "BDG-4209",
+      "name": "Salma Sassi",
+      "role": "Press Operator",
+      "team": "Machining",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_BREAK",
+      "entry_time": "22:00",
+      "working_hours_today": 6.0,
+      "hours_this_week": 30.1,
+      "overtime_hours": 0.0,
+      "productivity_pct": 87.8,
+      "ppe": {
+        "helmet": true,
+        "vest": false,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "Forklift Licence",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-26T23:46",
+      "last_exit": "2026-09-26T14:52"
+    },
+    {
+      "id": "W110",
+      "badge": "BDG-4210",
+      "name": "Mouna Ouali",
+      "role": "Electrical Technician",
+      "team": "Maintenance",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_BREAK",
+      "entry_time": "22:00",
+      "working_hours_today": 3.1,
+      "hours_this_week": 44.2,
+      "overtime_hours": 4.2,
+      "productivity_pct": 93.4,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Electrical LV",
+        "Forklift Licence"
+      ],
+      "last_entry": "2026-09-27T02:17",
+      "last_exit": "2026-09-26T17:58"
+    },
+    {
+      "id": "W111",
+      "badge": "BDG-4211",
+      "name": "Sarah Ben Ali",
+      "role": "CNC Technician",
+      "team": "Machining",
+      "zone": "ZONE_C",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_BREAK",
+      "entry_time": "06:00",
+      "working_hours_today": 2.0,
+      "hours_this_week": 44.9,
+      "overtime_hours": 4.9,
+      "productivity_pct": 94.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "First Aid",
+        "ISO 45001 Awareness",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T04:04",
+      "last_exit": "2026-09-26T20:51"
+    },
+    {
+      "id": "W112",
+      "badge": "BDG-4212",
+      "name": "Zied Sassi",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_A",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 8.0,
+      "hours_this_week": 32.6,
+      "overtime_hours": 0.0,
+      "productivity_pct": 84.2,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": false,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "First Aid",
+        "Forklift Licence",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T00:34",
+      "last_exit": "2026-09-26T20:28"
+    },
+    {
+      "id": "W113",
+      "badge": "BDG-4213",
+      "name": "Rania Nasri",
+      "role": "Quality Controller",
+      "team": "Quality",
+      "zone": "ZONE_D",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 5.7,
+      "hours_this_week": 44.4,
+      "overtime_hours": 4.4,
+      "productivity_pct": 86.5,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Hot Work Permit",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T02:20",
+      "last_exit": "2026-09-26T19:18"
+    },
+    {
+      "id": "W114",
+      "badge": "BDG-4214",
+      "name": "Anis Rekik",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_D",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 7.1,
+      "hours_this_week": 31.5,
+      "overtime_hours": 0.0,
+      "productivity_pct": 82.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space"
+      ],
+      "last_entry": "2026-09-27T00:39",
+      "last_exit": "2026-09-26T16:38"
+    },
+    {
+      "id": "W115",
+      "badge": "BDG-4215",
+      "name": "Hamza Haddad",
+      "role": "Quality Controller",
+      "team": "Quality",
+      "zone": "ZONE_D",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 7.8,
+      "hours_this_week": 32.6,
+      "overtime_hours": 0.0,
+      "productivity_pct": 86.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Forklift Licence",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T04:26",
+      "last_exit": "2026-09-26T15:25"
+    },
+    {
+      "id": "W116",
+      "badge": "BDG-4216",
+      "name": "Sarah Ouali",
+      "role": "Maintenance Specialist",
+      "team": "Maintenance",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 6.7,
+      "hours_this_week": 42.4,
+      "overtime_hours": 2.4,
+      "productivity_pct": 86.7,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "Electrical LV",
+        "First Aid"
+      ],
+      "last_entry": "2026-09-27T06:53",
+      "last_exit": "2026-09-26T17:26"
+    },
+    {
+      "id": "W117",
+      "badge": "BDG-4217",
+      "name": "Mohamed Bouazizi",
+      "role": "CNC Technician",
+      "team": "Machining",
+      "zone": "ZONE_C",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 3.7,
+      "hours_this_week": 33.8,
+      "overtime_hours": 0.0,
+      "productivity_pct": 87.2,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "First Aid",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T03:30",
+      "last_exit": "2026-09-26T17:30"
+    },
+    {
+      "id": "W118",
+      "badge": "BDG-4218",
+      "name": "Hatem Slimani",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_A",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 6.1,
+      "hours_this_week": 38.0,
+      "overtime_hours": 0.0,
+      "productivity_pct": 80.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "First Aid",
+        "Hot Work Permit",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T06:53",
+      "last_exit": "2026-09-26T16:50"
+    },
+    {
+      "id": "W119",
+      "badge": "BDG-4219",
+      "name": "Olfa Sassi",
+      "role": "Press Operator",
+      "team": "Machining",
+      "zone": "ZONE_D",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 7.2,
+      "hours_this_week": 42.0,
+      "overtime_hours": 2.0,
+      "productivity_pct": 78.9,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T04:28",
+      "last_exit": "2026-09-26T17:01"
+    },
+    {
+      "id": "W120",
+      "badge": "BDG-4220",
+      "name": "Fatma Karoui",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_D",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 5.1,
+      "hours_this_week": 42.8,
+      "overtime_hours": 2.8,
+      "productivity_pct": 87.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Hot Work Permit",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T02:05",
+      "last_exit": "2026-09-26T13:36"
+    },
+    {
+      "id": "W121",
+      "badge": "BDG-4221",
+      "name": "Leila Rekik",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_C",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 6.2,
+      "hours_this_week": 28.3,
+      "overtime_hours": 0.0,
+      "productivity_pct": 96.5,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Electrical LV",
+        "First Aid",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T00:31",
+      "last_exit": "2026-09-26T19:42"
+    },
+    {
+      "id": "W122",
+      "badge": "BDG-4222",
+      "name": "Olfa Haddad",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_D",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "OFF_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 2.0,
+      "hours_this_week": 29.4,
+      "overtime_hours": 0.0,
+      "productivity_pct": 93.6,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": false,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T07:05",
+      "last_exit": "2026-09-26T14:43"
+    },
+    {
+      "id": "W123",
+      "badge": "BDG-4223",
+      "name": "Anis Karoui",
+      "role": "Electrical Technician",
+      "team": "Maintenance",
+      "zone": "ZONE_D",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 2.1,
+      "hours_this_week": 35.8,
+      "overtime_hours": 0.0,
+      "productivity_pct": 90.3,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Forklift Licence",
+        "Hot Work Permit",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T03:16",
+      "last_exit": "2026-09-26T18:53"
+    },
+    {
+      "id": "W124",
+      "badge": "BDG-4224",
+      "name": "Yosra Hamdi",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_C",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_BREAK",
+      "entry_time": "14:00",
+      "working_hours_today": 3.7,
+      "hours_this_week": 45.9,
+      "overtime_hours": 5.9,
+      "productivity_pct": 80.7,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Electrical LV",
+        "First Aid",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T02:06",
+      "last_exit": "2026-09-26T17:49"
+    },
+    {
+      "id": "W125",
+      "badge": "BDG-4225",
+      "name": "Hiba Haddad",
+      "role": "Electrical Technician",
+      "team": "Maintenance",
+      "zone": "ZONE_A",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_SITE",
+      "entry_time": "06:00",
+      "working_hours_today": 4.2,
+      "hours_this_week": 37.2,
+      "overtime_hours": 0.0,
+      "productivity_pct": 95.7,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Crane Signalling",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T03:23",
+      "last_exit": "2026-09-26T12:26"
+    },
+    {
+      "id": "W126",
+      "badge": "BDG-4226",
+      "name": "Ahmed Sassi",
+      "role": "Quality Controller",
+      "team": "Quality",
+      "zone": "ZONE_D",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_BREAK",
+      "entry_time": "22:00",
+      "working_hours_today": 6.6,
+      "hours_this_week": 43.5,
+      "overtime_hours": 3.5,
+      "productivity_pct": 83.0,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "Hot Work Permit",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-26T23:49",
+      "last_exit": "2026-09-26T19:14"
+    },
+    {
+      "id": "W127",
+      "badge": "BDG-4227",
+      "name": "Olfa Ben Ali",
+      "role": "CNC Technician",
+      "team": "Machining",
+      "zone": "ZONE_C",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "OFF_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 6.4,
+      "hours_this_week": 42.4,
+      "overtime_hours": 2.4,
+      "productivity_pct": 83.9,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "First Aid",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-26T23:44",
+      "last_exit": "2026-09-26T19:15"
+    },
+    {
+      "id": "W128",
+      "badge": "BDG-4228",
+      "name": "Hatem Amri",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_A",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 6.6,
+      "hours_this_week": 33.2,
+      "overtime_hours": 0.0,
+      "productivity_pct": 93.9,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "Electrical LV",
+        "ISO 45001 Awareness",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T02:23",
+      "last_exit": "2026-09-26T15:26"
+    },
+    {
+      "id": "W129",
+      "badge": "BDG-4229",
+      "name": "Hatem Chaabane",
+      "role": "Robotics Technician",
+      "team": "Assembly",
+      "zone": "ZONE_A",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 2.5,
+      "hours_this_week": 40.6,
+      "overtime_hours": 0.6,
+      "productivity_pct": 93.8,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "Electrical LV",
+        "First Aid"
+      ],
+      "last_entry": "2026-09-27T06:57",
+      "last_exit": "2026-09-26T16:54"
+    },
+    {
+      "id": "W130",
+      "badge": "BDG-4230",
+      "name": "Ahmed Mejri",
+      "role": "Maintenance Specialist",
+      "team": "Maintenance",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_SITE",
+      "entry_time": "22:00",
+      "working_hours_today": 4.2,
+      "hours_this_week": 28.6,
+      "overtime_hours": 0.0,
+      "productivity_pct": 78.5,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling"
+      ],
+      "last_entry": "2026-09-27T07:05",
+      "last_exit": "2026-09-26T16:40"
+    },
+    {
+      "id": "W131",
+      "badge": "BDG-4231",
+      "name": "Hiba Ayari",
+      "role": "Quality Controller",
+      "team": "Quality",
+      "zone": "ZONE_C",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_BREAK",
+      "entry_time": "14:00",
+      "working_hours_today": 4.1,
+      "hours_this_week": 38.9,
+      "overtime_hours": 0.0,
+      "productivity_pct": 96.6,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Hot Work Permit"
+      ],
+      "last_entry": "2026-09-27T03:53",
+      "last_exit": "2026-09-26T12:07"
+    },
+    {
+      "id": "W132",
+      "badge": "BDG-4232",
+      "name": "Salma Dridi",
+      "role": "Safety Inspector",
+      "team": "HSE",
+      "zone": "ZONE_D",
+      "shift": "Afternoon",
+      "shift_start": "14:00",
+      "shift_end": "22:00",
+      "status": "ON_SITE",
+      "entry_time": "14:00",
+      "working_hours_today": 7.8,
+      "hours_this_week": 36.3,
+      "overtime_hours": 0.0,
+      "productivity_pct": 85.1,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Crane Signalling",
+        "Electrical LV",
+        "Hot Work Permit",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T04:57",
+      "last_exit": "2026-09-26T15:14"
+    },
+    {
+      "id": "W133",
+      "badge": "BDG-4233",
+      "name": "Sofiene Amri",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_D",
+      "shift": "Morning",
+      "shift_start": "06:00",
+      "shift_end": "14:00",
+      "status": "ON_BREAK",
+      "entry_time": "06:00",
+      "working_hours_today": 4.6,
+      "hours_this_week": 34.3,
+      "overtime_hours": 0.0,
+      "productivity_pct": 81.9,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "Confined Space",
+        "First Aid",
+        "Forklift Licence",
+        "LOTO Authorised"
+      ],
+      "last_entry": "2026-09-27T05:35",
+      "last_exit": "2026-09-26T20:55"
+    },
+    {
+      "id": "W134",
+      "badge": "BDG-4234",
+      "name": "Dorra Haddad",
+      "role": "Furnace Operator",
+      "team": "Heat Treatment",
+      "zone": "ZONE_C",
+      "shift": "Night",
+      "shift_start": "22:00",
+      "shift_end": "06:00",
+      "status": "ON_BREAK",
+      "entry_time": "22:00",
+      "working_hours_today": 3.0,
+      "hours_this_week": 39.7,
+      "overtime_hours": 0.0,
+      "productivity_pct": 94.6,
+      "ppe": {
+        "helmet": true,
+        "vest": true,
+        "gloves": true,
+        "safety_shoes": true
+      },
+      "certifications": [
+        "First Aid",
+        "ISO 45001 Awareness"
+      ],
+      "last_entry": "2026-09-27T05:54",
+      "last_exit": "2026-09-26T17:11"
+    }
+  ]
+}
