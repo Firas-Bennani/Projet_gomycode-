@@ -524,3 +524,45 @@ The LLM's `WHAT TO DO` line lists only the actions **it** selected, while the Co
 shows the union of the deterministic recommendations and anything the LLM added. So the card can
 read "Engage auxiliary cooling" while three action cards are pending. That is the safety property
 working — the model can add to, but never remove, a deterministic recommendation.
+
+---
+
+## Step 7 — DONE (2026-09-27 ~07:55)
+
+New `backend/ai/risk_engine.py`. The fixed 0.94 / 0.85 / 0.80 confidences are gone; so is the
+"severity = the loudest observation" rule.
+
+**1. Confidence — noisy-OR over independent sources, weighted by trust.**
+`confidence = 1 − Π(1 − cᵢ·trustᵢ)`. One contribution per source (the observation window already
+guarantees one observation per agent+asset, and the engine de-duplicates again). Measured spread:
+0.84 at detection → 0.94 developed for overheating, 0.85 fire, 0.80 cyber — see `METRICS.md §3.1`.
+
+**2. Severity — impact × likelihood, capped by what the sensors justify.**
+Impact = asset criticality (M-04/M-05 = 3), +1 if people are exposed, +1 for a hazard that harms
+people directly. Likelihood = a band of the fused confidence. The product picks a severity, then
+it is **capped one band above the strongest single source**. That cap is the honesty mechanism:
+two warning-level readings would otherwise be announced as CRITICAL. It produces a genuine
+HIGH → CRITICAL progression as a fault develops.
+
+**3. Priority** — severity dominates, then people exposed, then how little time is left (ETA).
+
+**4. Per-sensor trust** — `set_trust(sensor_id, 0.2, reason)`, read during fusion, reported in the
+incident text as a `TRUST:` line naming the down-weighted sensor and why. Default 1.0.
+A test proves a spoofed ambient sensor at trust 0.2 does **not** stop an overheating machine being
+graded CRITICAL, because the machine's own pressure and body temperature are independent of it.
+**This is the hook Step 8 needs** — the cyber agent will call `set_trust()` on spoof detection.
+
+**The explanation shows its arithmetic** rather than asserting numbers:
+
+```
+HOW CONFIDENT: 84% by noisy-OR fusion over independent sources
+  [M-04 (WARNING, 0.60 -> 0.60; running 0.60), TEMP-B-01 (WARNING, 0.60 -> 0.60; running 0.84)]
+HOW SEVERE: HIGH — impact 4/4 x likelihood 3/4 = 12/16 -> CRITICAL, capped to HIGH because the
+  strongest single source is only WARNING.
+```
+
+`recommendation_agent` keeps `fuse_confidence()` and `SEVERITY_RANK` as thin wrappers so nothing
+that imported them broke.
+
+**Acceptance:** **81 pytest tests** (17 new), `e2e_test.py` **15/15**, `gate1_verify.py` **13/13**,
+and confidence demonstrably varies with the evidence.

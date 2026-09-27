@@ -18,12 +18,14 @@ Rewritten in Step 1 to fix the correlation bug. Three things changed:
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
-from ai import clock
+from ai import clock, risk_engine
 from ai.agents.base_agent import BaseAgent
 from ai.rag.rag_engine import rag_engine
 from app.models.schemas import RecommendedAction, RiskLevel, Severity
 
-SEVERITY_RANK = {"INFO": 0, "WARNING": 1, "HIGH": 2, "CRITICAL": 3}
+# Step 7: the arithmetic now lives in ai/risk_engine.py. Re-exported here so existing imports
+# keep working.
+SEVERITY_RANK = risk_engine.SEVERITY_RANK
 SEVERITY_ENUM = {
     "INFO": Severity.INFO,
     "WARNING": Severity.WARNING,
@@ -31,11 +33,8 @@ SEVERITY_ENUM = {
     "CRITICAL": Severity.CRITICAL,
 }
 
-# Per-source likelihood that the hazard is real, given that source alone.
-# Provisional values, replaced by the risk engine in Step 7.
-SOURCE_CONFIDENCE = {"WARNING": 0.60, "HIGH": 0.80, "CRITICAL": 0.85}
-
-MAX_CONFIDENCE = 0.99
+SOURCE_CONFIDENCE = risk_engine.SOURCE_CONFIDENCE
+MAX_CONFIDENCE = risk_engine.MAX_CONFIDENCE
 
 
 def _rank(severity: str) -> int:
@@ -51,24 +50,13 @@ def max_severity(observations: List[Dict[str, Any]], floor: str = "WARNING") -> 
 
 
 def fuse_confidence(observations: List[Dict[str, Any]]) -> Tuple[float, List[str]]:
-    """Noisy-OR fusion over independent hazard sources.
+    """Backwards-compatible wrapper around :func:`ai.risk_engine.fuse`.
 
-    ``confidence = 1 - Π(1 - cᵢ)``: two weak but independent sensors agreeing is stronger
-    evidence than either alone, and no single source can reach certainty.
+    Kept so older callers and tests continue to work; the real fusion, including per-sensor
+    trust, is in the risk engine.
     """
-    product = 1.0
-    contributions: List[str] = []
-    for obs in observations:
-        severity = str(obs.get("severity", "INFO")).upper()
-        c = SOURCE_CONFIDENCE.get(severity)
-        if c is None:
-            continue
-        product *= (1.0 - c)
-        label = obs.get("sensor_id") or obs.get("machine_id") or obs.get("device") or obs.get("agent_id")
-        contributions.append(f"{label} ({severity}, {c:.2f})")
-    if not contributions:
-        return 0.0, []
-    return round(min(1.0 - product, MAX_CONFIDENCE), 3), contributions
+    confidence, contributions, _ = risk_engine.fuse(observations)
+    return confidence, [c.text for c in contributions]
 
 
 class RecommendationAgent(BaseAgent):
@@ -114,19 +102,26 @@ class RecommendationAgent(BaseAgent):
         self,
         what: str,
         why: List[str],
-        confidence: float,
-        contributions: List[str],
+        risk,
         impact: str,
         todo: str,
         approver: str,
     ) -> str:
+        """Explanation text. Every number in it is shown with the arithmetic that produced it."""
         why_text = " ".join(why) if why else "No corroborating detail recorded."
-        contrib_text = ", ".join(contributions) if contributions else "no scored source"
+        distrust_note = ""
+        if risk.distrusted:
+            reasons = "; ".join(
+                f"{s} down-weighted ({risk_engine.trust_reason(s) or 'reduced trust'})"
+                for s in risk.distrusted
+            )
+            distrust_note = f"\nTRUST: {reasons}."
         return (
             f"WHAT: {what}\n"
             f"WHY: {why_text}\n"
-            f"HOW CONFIDENT: {confidence * 100:.0f}% after fusing independent sources "
-            f"[{contrib_text}] — this is a risk assessment, not a certainty.\n"
+            f"HOW CONFIDENT: {risk.confidence * 100:.0f}% by noisy-OR fusion over independent "
+            f"sources [{risk.contribution_text}] — a risk assessment, not a certainty.\n"
+            f"HOW SEVERE: {risk.severity} — {risk.severity_explanation}.{distrust_note}\n"
             f"WHAT IMPACT: {impact}\n"
             f"WHAT TO DO: {todo}\n"
             f"WHO APPROVES: {approver}"
@@ -216,9 +211,12 @@ class RecommendationAgent(BaseAgent):
     def _fire_incident(self, smoke_obs, temp_obs, worker_obs, signals, zone) -> Dict[str, Any]:
         rag_engine.query("Combustion fire suppression evacuation protocol")
         hazard_obs = smoke_obs + temp_obs
-        severity = max_severity(hazard_obs)
-        confidence, contributions = fuse_confidence(hazard_obs)
         workers = self._workers_in(zone, worker_obs)
+        risk = risk_engine.assess(
+            hazard_obs, "INDUSTRIAL_FIRE",
+            assets=[o.get("sensor_id") for o in smoke_obs if o.get("sensor_id")],
+            workers_exposed=len(workers),
+        )
         zone_letter = zone.split("_")[-1]
 
         actions = [
@@ -255,8 +253,7 @@ class RecommendationAgent(BaseAgent):
         reasoning = self._reasoning(
             what=f"Combustion signature detected in {zone}.",
             why=[f"{i + 1}) {s}." for i, s in enumerate(signals)],
-            confidence=confidence,
-            contributions=contributions,
+            risk=risk,
             impact=impact,
             todo="Sound the evacuation alarm, seal containment doors, then discharge suppression.",
             approver="Explicit owner confirmation required for suppression discharge.",
@@ -270,8 +267,8 @@ class RecommendationAgent(BaseAgent):
         return {
             "id": f"INC-{uuid.uuid4().hex[:4].upper()}",
             "type": "INDUSTRIAL_FIRE",
-            "severity": SEVERITY_ENUM[severity],
-            "confidence": confidence,
+            "severity": SEVERITY_ENUM[risk.severity],
+            "confidence": risk.confidence,
             "zone": zone,
             "timestamp": clock.now(),
             "affected_assets": [f"{zone} Sector"] + [o.get("sensor_id") for o in smoke_obs if o.get("sensor_id")],
@@ -287,12 +284,16 @@ class RecommendationAgent(BaseAgent):
     def _overheating_incident(self, machine_obs, temp_obs, worker_obs, zone) -> Dict[str, Any]:
         rag_engine.query("machine overheating pressure emergency shutdown EP-07")
         hazard_obs = machine_obs + temp_obs
-        severity = max_severity(hazard_obs)
-        confidence, contributions = fuse_confidence(hazard_obs)
         workers = self._workers_in(zone, worker_obs)
 
         primary = max(machine_obs, key=lambda o: _rank(o.get("severity", "INFO")))
         machine_id = primary.get("machine_id", "M-04")
+        risk = risk_engine.assess(
+            hazard_obs, "MACHINE_OVERHEATING",
+            assets=sorted({o.get("machine_id") for o in machine_obs if o.get("machine_id")}),
+            workers_exposed=len(workers),
+            eta_seconds=primary.get("eta_to_pressure_limit_s") or primary.get("eta_to_temperature_limit_s"),
+        )
 
         why: List[str] = []
         for obs in machine_obs:
@@ -343,8 +344,7 @@ class RecommendationAgent(BaseAgent):
         reasoning = self._reasoning(
             what=f"Mechanical overheating / overpressure developing on {machine_id} in {zone}.",
             why=why,
-            confidence=confidence,
-            contributions=contributions,
+            risk=risk,
             impact=impact,
             todo=f"Halt {machine_id}, clear {zone}, and engage auxiliary cooling.",
             approver="Explicit owner confirmation required — the shutdown stops production.",
@@ -358,8 +358,8 @@ class RecommendationAgent(BaseAgent):
         return {
             "id": f"INC-{uuid.uuid4().hex[:4].upper()}",
             "type": "MACHINE_OVERHEATING",
-            "severity": SEVERITY_ENUM[severity],
-            "confidence": confidence,
+            "severity": SEVERITY_ENUM[risk.severity],
+            "confidence": risk.confidence,
             "zone": zone,
             "timestamp": clock.now(),
             "affected_assets": sorted({o.get("machine_id") for o in machine_obs if o.get("machine_id")}),
@@ -374,11 +374,12 @@ class RecommendationAgent(BaseAgent):
 
     def _cyber_incident(self, cyber_obs, worker_obs, zone) -> Dict[str, Any]:
         rag_engine.query("OT industrial cyber network isolation rogue device")
-        severity = max_severity(cyber_obs, floor="HIGH")
-        confidence, contributions = fuse_confidence(cyber_obs)
         primary = cyber_obs[0]
         device = primary.get("device", "UNKNOWN-DEVICE-07")
         target = primary.get("target", "Industrial Modbus Gateway")
+        risk = risk_engine.assess(
+            cyber_obs, "CYBER_INTRUSION", assets=[device, target], workers_exposed=0,
+        )
 
         actions = [
             RecommendedAction(
@@ -402,8 +403,7 @@ class RecommendationAgent(BaseAgent):
         reasoning = self._reasoning(
             what=f"Unauthorized OT network activity from {device} towards {target}.",
             why=[o.get("observation", "") for o in cyber_obs],
-            confidence=confidence,
-            contributions=contributions,
+            risk=risk,
             impact="Risk of PLC logic manipulation, spoofed readings, or a forced production stop.",
             todo=f"Isolate {device} and quarantine its switch port.",
             approver="Plant security officer / system owner confirmation required.",
@@ -417,8 +417,8 @@ class RecommendationAgent(BaseAgent):
         return {
             "id": f"INC-{uuid.uuid4().hex[:4].upper()}",
             "type": "CYBER_INTRUSION",
-            "severity": SEVERITY_ENUM[severity],
-            "confidence": confidence,
+            "severity": SEVERITY_ENUM[risk.severity],
+            "confidence": risk.confidence,
             "zone": zone,
             "timestamp": clock.now(),
             "affected_assets": [device, target],

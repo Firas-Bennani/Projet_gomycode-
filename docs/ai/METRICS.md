@@ -7,7 +7,7 @@ command shown. No figure in this file is estimated.
 
 ## 1. Detection correctness (Steps 1–4)
 
-`cd backend && ..\.venv\Scripts\python.exe -m pytest -q` → **64 passed**, runs in ~11 s with no
+`cd backend && ..\.venv\Scripts\python.exe -m pytest -q` → **81 passed**, runs in ~11 s with no
 real-time sleeping (a `FakeClock` drives the trends).
 
 Live through the API, all four demo scenarios:
@@ -107,7 +107,61 @@ Corpus: **5 procedure documents, 31 numbered sections**. Spot-checked ranking:
 
 ---
 
-## 3. Still to be measured
+## 3. Risk engine (Step 7)
+
+`cd backend && ..\.venv\Scripts\python.exe -m pytest -q` → **81 passed** (17 new risk-engine
+tests). Both acceptance scripts still pass after the change: `e2e_test.py` **15/15**,
+`gate1_verify.py` **13/13**.
+
+### 3.1 Confidence now varies with the evidence
+
+Measured live, after the fixed 0.94 / 0.85 / 0.80 literals were replaced by noisy-OR fusion
+(`confidence = 1 − Π(1 − cᵢ·trustᵢ)`):
+
+| Scenario | Sources fused | Confidence | Severity |
+|---|---|---|---|
+| `machine_overheating` (at detection) | M-04 WARNING + TEMP-B-01 WARNING | **0.84** | HIGH |
+| `machine_overheating` (developed) | M-04 CRITICAL + TEMP-B-01 WARNING | **0.94** | CRITICAL |
+| `fire` | SMOKE-B-01 CRITICAL | **0.85** | CRITICAL |
+| `cybersecurity` | UNKNOWN-DEVICE-07 HIGH | **0.80** | HIGH |
+
+The numbers happen to land near the old hardcoded ones for the developed cases — which is the
+point: the literals were roughly right, but they could not move. 0.84 at detection rising to 0.94
+as the second source turns critical is new behaviour, and it is derived.
+
+### 3.2 The explanation now shows its arithmetic
+
+Verbatim from a live run:
+
+```
+HOW CONFIDENT: 84% by noisy-OR fusion over independent sources
+  [M-04 (WARNING, 0.60 -> 0.60; running 0.60), TEMP-B-01 (WARNING, 0.60 -> 0.60; running 0.84)]
+  — a risk assessment, not a certainty.
+HOW SEVERE: HIGH — impact 4/4 x likelihood 3/4 = 12/16 -> CRITICAL, capped to HIGH because the
+  strongest single source is only WARNING.
+```
+
+That cap is the honesty mechanism: the impact × likelihood matrix wanted CRITICAL from two
+warning-level readings, and the engine refuses, because no single sensor is past its critical
+threshold yet. It is what produces a real HIGH → CRITICAL progression instead of shouting
+CRITICAL from the first tick.
+
+### 3.3 Sensor trust — a spoofed sensor cannot hide a hazard
+
+`test_a_spoofed_temperature_sensor_does_not_hide_an_overheating_machine`:
+
+| Situation | TEMP-B-01 trust | Its contribution | Fused confidence | Severity |
+|---|---|---|---|---|
+| Normal | 1.00 | 0.85 | 0.85 alone | — |
+| Judged spoofed | **0.20** | 0.85 × 0.20 = **0.17** | **≥ 0.85** from M-04 alone | **CRITICAL** |
+
+The hazard is still graded CRITICAL because the machine's own pressure and body temperature are
+physically independent of the ambient sensor, and the incident text names the down-weighted
+sensor and why. Step 8 wires the cyber agent's spoof detection into `set_trust()`.
+
+---
+
+## 4. Still to be measured
 
 - **Step 5b** — NIM on Brev: model name, latency, and the NIM → Gemini → template chain
   demonstrated once in each of its three states.
