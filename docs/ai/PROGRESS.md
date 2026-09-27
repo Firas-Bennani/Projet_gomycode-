@@ -213,3 +213,80 @@ Fallback if Docker cannot be fixed tonight: run n8n on the host with `npx n8n`. 
 
 **What's next:** unblock n8n, then the n8n owner account + credentials, import and activate
 `incident_response_v1`, and run the curl round-trip (Step 3 acceptance) before GATE 1.
+
+---
+
+## Step 3 — DONE, acceptance met 3× in a row (2026-09-27 ~04:15)
+
+### Result
+
+```
+STEP 3 ACCEPTANCE — backend <-> n8n round trip      RESULT: 15/15 checks passed   (x3 runs)
+```
+
+Reproduce with `..\.venv\Scripts\python.exe n8n\e2e_test.py` (~60 s, exit code 0 = met).
+It triggers `machine_overheating`, waits for the n8n execution, checks the enrichment came
+back, authorises the pending actions through the same `/api/actions/{id}/authorize` call the
+dashboard button makes, then asserts the n8n execution finished `success`, verification passed
+and the incident resolved.
+
+- n8n **2.40.7** running on the host via `npx` (no Docker). PID owns port 5678; state in `~/.n8n`.
+- Workflow `Incident Response v1 (deterministic, no LLM)`, id `JGnDOTFBKB6YqUbD`, **ACTIVE**.
+- Imported and activated through the public API with `n8n/import_workflows.py`; exported back
+  with `n8n/export_workflows.py` and **re-imported unchanged**, so the committed JSON is proven
+  reproducible (this is what Step 11's from-scratch run depends on).
+- All four scenarios still classify correctly with n8n in the loop:
+  `machine_overheating → MACHINE_OVERHEATING (0.94)`, `fire → INDUSTRIAL_FIRE (0.85)`,
+  `cybersecurity → CYBER_INTRUSION (0.80)`, `normal → none`.
+- **54 pytest tests pass.**
+
+### Two bugs found and fixed during this step
+
+1. **n8n could not reach the backend.** `BACKEND_BASE_URL_FOR_N8N=http://localhost:8000` gave
+   *"The service refused the connection"*: Node 18+ resolves `localhost` to IPv6 `::1` first,
+   while uvicorn binds IPv4 `127.0.0.1` only. Pinned to `http://127.0.0.1:8000` (and made that
+   the default in `n8n_client.py`) rather than exposing the backend on all interfaces.
+   Documented in `.env.example` and `n8n/README.md` — this will bite anyone on the team.
+2. **Escalation erased the enriched explanation.** After n8n rewrote `ai_reasoning`, the next
+   severity escalation overwrote it with the deterministic template text — in the demo the
+   LLM's explanation would appear and vanish a second later. The orchestrator now keeps an
+   enriched explanation and appends a single refreshed line
+   (`— re-assessed since enrichment: severity WARNING -> CRITICAL, confidence now 0.94 …`).
+   Three tests cover it, including that a non-enriched incident still gets fresh template text.
+
+### Also done
+
+- `n8n/import_workflows.py`, `n8n/export_workflows.py`, `n8n/e2e_test.py` — repeatable
+  import/export/verify instead of hand-clicking in the UI.
+- `n8n/README.md` — start command, one-time setup, import order, which workflows to activate,
+  the IPv4 gotcha, and what the workflow does. (Step 11 asked for this; written early because
+  it is also the recovery procedure if n8n dies.)
+- `docs/ai/PLAN.md` — revised Sunday schedule at the top of section 6.
+
+### ⚠️ Known issues to look at during Step 4
+
+- **The `recommendation_agent (n8n)` log entry scrolls away fast.** `state.agent_logs` is capped
+  at 100 entries and the simulator writes several per second, so the enrichment entry is pushed
+  out within ~30 s. The E2E test sees only 1 n8n entry for this reason. If the AI page looks
+  empty of n8n activity during the demo, the cheap fix is raising the cap in
+  `orchestrator._log_agent_step` and `n8n_bridge._log` (both mine) — your call once you see the UI.
+- **Incident severity starts at WARNING** and escalates to CRITICAL a few seconds later, because
+  machine evidence now arrives before the readings are critical. Correct behaviour, but worth
+  knowing so it does not look like a bug on stage.
+- `telemetry_consistent=false` after a shutdown is expected: the simulator keeps driving the
+  scenario curve over a stopped machine (proposal P5 for Engineer 2). Gating checks all pass.
+- 1 of the 9 n8n executions is red — that is the pre-fix `localhost` failure, kept for the
+  record. Executions 2+ are green. Clear it in the n8n UI before the demo if you prefer.
+
+### 🔔 At 07:30, for Firas
+
+1. **Check both processes are still alive** (I left them running):
+   - n8n: <http://localhost:5678> should load.
+   - backend: `curl http://127.0.0.1:8000/health` → `{"status":"HEALTHY"}`.
+   - If either died, `n8n/README.md` §1 and §4 have the exact commands.
+2. **Start the frontend** (I have not touched or run it — it is Engineers 3/4's):
+   `cd frontend; npm install; npm run dev` → <http://localhost:5173>.
+3. Then we do **Step 4 / GATE 1**: trigger `machine_overheating` from the demo bar, click
+   AUTHORIZE, and tell me what the incident panel, the action status and the 3D view do, plus
+   whether the n8n Executions tab goes green.
+4. Nothing needs your clicks before that. Push is done, so the work is safe.

@@ -237,7 +237,15 @@ class AgentOrchestrator:
         # pydantic does not validate on assignment, so coerce the dicts ourselves
         incident.evidence = [EvidenceItem(**e) if isinstance(e, dict) else e
                              for e in incident_data["evidence"]]
-        incident.ai_reasoning = incident_data["ai_reasoning"]
+        # Do NOT clobber an explanation n8n (and from Step 5, the LLM) already wrote: the owner
+        # may be reading it. Record the escalation as a trailing line instead.
+        from ai.n8n_client import was_enriched
+        if was_enriched(incident.id):
+            incident.ai_reasoning = self._with_escalation_note(
+                incident.ai_reasoning, previous, incident.severity.value, incident.confidence
+            )
+        else:
+            incident.ai_reasoning = incident_data["ai_reasoning"]
         incident.affected_workers = incident_data["affected_workers"]
 
         if zone_state := state.zones.get(incident.zone):
@@ -264,6 +272,18 @@ class AgentOrchestrator:
             zone=incident.zone,
             severity=incident.severity.value,
             correlation_id=incident.id
+        )
+
+    ESCALATION_MARKER = "\n— re-assessed since enrichment:"
+
+    @classmethod
+    def _with_escalation_note(cls, reasoning: str, previous: str, current: str, confidence: float) -> str:
+        """Append (or refresh) a single escalation line under an enriched explanation."""
+        base = reasoning.split(cls.ESCALATION_MARKER)[0].rstrip()
+        return (
+            f"{base}{cls.ESCALATION_MARKER} severity {previous} -> {current}, "
+            f"confidence now {confidence:.2f} from refreshed sensor evidence "
+            f"(the explanation above is unchanged)."
         )
 
     async def _create_incident_and_actions(self, incident_data: Dict[str, Any], observations: List[Dict[str, Any]]):

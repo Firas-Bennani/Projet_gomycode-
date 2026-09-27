@@ -279,3 +279,84 @@ def test_resume_url_is_rewritten_inside_a_container(monkeypatch):
     monkeypatch.setattr(n8n_client, "_running_in_container", lambda: True)
     assert n8n_client.rewrite_resume_url("http://localhost:5678/webhook-waiting/abc") == \
         "http://n8n:5678/webhook-waiting/abc"
+
+
+# --------------------------------------------------------------------- enrichment durability
+
+@pytest.mark.asyncio
+async def test_escalation_does_not_erase_an_enriched_explanation():
+    """Regression: the orchestrator overwrote n8n's explanation on the next severity change.
+
+    In the demo the LLM's reasoning appeared and then vanished a second later, replaced by the
+    deterministic template text. An escalation must now add a line, not replace the body.
+    """
+    from ai.orchestrator import AgentOrchestrator
+
+    incident = seed_incident()
+    incident.severity = Severity.WARNING
+    client.post("/api/ai/n8n/enrichment/INC-TEST", json={
+        "what": "Compressor overheating", "why": ["pressure over the limit"],
+        "recommended_action_ids": ["stop_machine"], "produced_by": "gemini-via-n8n",
+    })
+    enriched_text = incident.ai_reasoning
+    assert "gemini-via-n8n" in enriched_text
+
+    orchestrator = AgentOrchestrator()
+    await orchestrator._escalate(
+        incident,
+        {
+            "type": "MACHINE_OVERHEATING", "zone": "ZONE_B",
+            "severity": Severity.CRITICAL, "confidence": 0.98,
+            "evidence": [{"source": "machine_agent", "detail": "pressure 8.9 bar"}],
+            "ai_reasoning": "DETERMINISTIC TEMPLATE TEXT",
+            "affected_workers": ["W23"],
+        },
+        [{"agent_id": "machine_agent"}],
+    )
+
+    assert incident.severity == Severity.CRITICAL, "severity must still escalate"
+    assert incident.confidence == 0.98
+    assert "DETERMINISTIC TEMPLATE TEXT" not in incident.ai_reasoning
+    assert "gemini-via-n8n" in incident.ai_reasoning, "the enriched explanation must survive"
+    assert "re-assessed since enrichment" in incident.ai_reasoning
+    assert incident.ai_reasoning.count("re-assessed since enrichment") == 1
+
+
+@pytest.mark.asyncio
+async def test_escalation_note_is_refreshed_not_stacked():
+    from ai.orchestrator import AgentOrchestrator
+
+    incident = seed_incident()
+    incident.severity = Severity.WARNING
+    client.post("/api/ai/n8n/enrichment/INC-TEST", json={"what": "x", "produced_by": "n8n"})
+    orchestrator = AgentOrchestrator()
+    base = {
+        "type": "MACHINE_OVERHEATING", "zone": "ZONE_B",
+        "evidence": [], "ai_reasoning": "TEMPLATE", "affected_workers": [],
+    }
+    await orchestrator._escalate(incident, {**base, "severity": Severity.HIGH, "confidence": 0.90},
+                                 [{"agent_id": "machine_agent"}])
+    await orchestrator._escalate(incident, {**base, "severity": Severity.CRITICAL, "confidence": 0.97},
+                                 [{"agent_id": "machine_agent"}])
+    assert incident.ai_reasoning.count("re-assessed since enrichment") == 1
+    assert "0.97" in incident.ai_reasoning
+
+
+def test_escalation_still_replaces_a_non_enriched_explanation():
+    """Without n8n in the loop the old behaviour is correct: refresh the template text."""
+    from ai.orchestrator import AgentOrchestrator
+    import asyncio
+
+    incident = seed_incident()
+    incident.severity = Severity.WARNING
+    orchestrator = AgentOrchestrator()
+    asyncio.get_event_loop_policy().new_event_loop().run_until_complete(
+        orchestrator._escalate(
+            incident,
+            {"type": "MACHINE_OVERHEATING", "zone": "ZONE_B", "severity": Severity.CRITICAL,
+             "confidence": 0.98, "evidence": [], "ai_reasoning": "FRESH TEMPLATE TEXT",
+             "affected_workers": []},
+            [{"agent_id": "machine_agent"}],
+        )
+    )
+    assert incident.ai_reasoning == "FRESH TEMPLATE TEXT"

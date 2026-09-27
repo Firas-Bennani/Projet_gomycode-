@@ -86,6 +86,22 @@ WHEN DONE, REPLY WITH: <exactly what to paste back, e.g. "GO", an error message,
 
 ## 6. The steps
 
+> ### ⏱ REVISED SUNDAY SCHEDULE (agreed 2026-09-27 ~03:40, supersedes the times below)
+>
+> Steps 0–3 are **done** (see `PROGRESS.md`); Step 3 passed its acceptance 3× in a row at 04:00.
+>
+> | Time | Step | Notes |
+> |---|---|---|
+> | **07:30** | **Step 4 — GATE 1 with the real UI** | frontend + AUTHORIZE click + n8n Executions tab |
+> | **08:15** | **Step 5b (Brev NIM) + Step 5 (RAG)** | RAG uses n8n's **Simple Vector Store** (in-memory), no pgvector |
+> | **09:15** | **Step 6 — ML models** | train on the Brev GPU instance, copy `.joblib` back |
+> | **10:30** | **Step 7 — risk engine** | move fusion into `ai/risk_engine.py`, add per-sensor trust |
+> | **11:15** | **Step 8 — cyber (simplified)** | rules + MITRE ATT&CK for ICS lookup |
+> | — | **Steps 9 and 10 are CUT** | unless we are ahead of schedule |
+> | **13:00** | **Feature freeze** → Step 11 hardening + `DEMO.md` | |
+>
+> Never cut Steps 1–4. Original times kept below for reference.
+
 Times are targets. **GATE 1 (Step 4) must be done by 01:30 Sunday.** If late, skip Step 5 tonight.
 **Cut order on Sunday if time runs out (cut from the bottom):** Step 10 → Step 9 → Step 8 → Step 6. Never cut Steps 1–4.
 

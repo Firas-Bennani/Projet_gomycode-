@@ -159,6 +159,8 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
         f"— enriched by {provenance}"
     )
 
+    n8n_client.mark_enriched(incident_id)
+
     _log(
         N8N_AGENT_ID,
         ["n8n:incident_response"],

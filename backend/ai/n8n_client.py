@@ -44,6 +44,11 @@ RESUME_URLS: Dict[str, str] = {}
 #: incident_id -> short note about the last n8n exchange, surfaced by the bridge router.
 LAST_EXCHANGE: Dict[str, Dict[str, Any]] = {}
 
+#: Incidents whose ai_reasoning has been replaced by an n8n enrichment. The orchestrator
+#: checks this before re-escalating, so a later severity change does not wipe the
+#: explanation the owner is reading.
+ENRICHED: set = set()
+
 
 def _env(name: str, default: str = "") -> str:
     return os.getenv(name, default).strip()
@@ -71,8 +76,12 @@ def backend_base_for_n8n() -> str:
     Default suits our actual setup: n8n on the host via `npx n8n`, backend on the host in the
     venv. If both ever run inside docker compose, set `BACKEND_BASE_URL_FOR_N8N=http://backend:8000`;
     for n8n in Docker reaching a host backend, `http://host.docker.internal:8000`.
+
+    **Use the IPv4 literal, not "localhost".** Node 18+ resolves `localhost` to `::1` first,
+    while uvicorn binds `127.0.0.1` only, so n8n's HTTP Request node got
+    "The service refused the connection - perhaps it is offline" until this was pinned.
     """
-    return _env("BACKEND_BASE_URL_FOR_N8N", "http://localhost:8000")
+    return _env("BACKEND_BASE_URL_FOR_N8N", "http://127.0.0.1:8000")
 
 
 def _running_in_container() -> bool:
@@ -108,6 +117,15 @@ def get_resume_url(incident_id: str) -> Optional[str]:
 def clear_resume_urls() -> None:
     RESUME_URLS.clear()
     LAST_EXCHANGE.clear()
+    ENRICHED.clear()
+
+
+def mark_enriched(incident_id: str) -> None:
+    ENRICHED.add(incident_id)
+
+
+def was_enriched(incident_id: str) -> bool:
+    return incident_id in ENRICHED
 
 
 def _note(incident_id: str, status: str, detail: str) -> None:
