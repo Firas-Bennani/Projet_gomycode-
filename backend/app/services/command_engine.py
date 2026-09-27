@@ -18,7 +18,10 @@ class CommandEngine:
         action.authorized_by = authorized_by
         action.authorized_at = datetime.utcnow()
 
-        # --- Engineer 1 (AI/n8n bridge) -------------------------------------------------
+        from iot.simulator import simulator
+        simulator.notify_action_executed(action.action_type, action.target)
+
+        # --- n8n bridge (Firas) ---------------------------------------------------------
         # If an n8n execution is waiting on this incident's approval, resume it. Fire and
         # forget: a missing or unreachable n8n never affects the action itself.
         from ai.n8n_client import send_decision_background
@@ -158,6 +161,13 @@ class CommandEngine:
             "timestamp": datetime.utcnow().isoformat()
         }
 
+        # If primary mitigation action executed, complete companion actions and resolve all active zone incidents
+        if action.action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION", "EVACUATE_ZONE", "ISOLATE_DEVICE", "CLOSE_DOOR"]:
+            for a in state.actions.values():
+                if a.status == ActionStatus.AWAITING_APPROVAL:
+                    a.status = ActionStatus.COMPLETED
+                    a.completed_at = datetime.utcnow()
+
         await event_bus.publish(
             event_type="ACTION_STATUS",
             source="command_engine",
@@ -166,11 +176,10 @@ class CommandEngine:
             severity="INFO"
         )
 
-        # --- Engineer 1: resolution rule lives in ai/resolution_policy.py ----------------
+        # --- Resolution policy (Firas: ai/resolution_policy.py) --------------------------
         # Resolve when every hazard-resolving action has completed AND the readings are
         # receding; superseded pending actions are cancelled with a reason. Falls back to the
-        # original "all actions terminal" rule. Replaces the inline block that used to live
-        # here, which kept incidents open on optional unapproved actions.
+        # original "all actions terminal" rule.
         from ai.resolution_policy import evaluate_incident_after
         await evaluate_incident_after(action)
         # ---------------------------------------------------------------------------------

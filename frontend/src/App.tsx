@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MetricsBar } from './components/MetricsBar';
 import { DemoScenarioBar } from './components/DemoScenarioBar';
+import { ScenarioProgressPanel } from './components/ScenarioProgressPanel';
 import { Factory3D } from './components/digital-twin/Factory3D';
 import { InspectorModal } from './components/digital-twin/InspectorModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
@@ -24,6 +25,7 @@ import { EventsView } from './components/views/EventsView';
 
 import { api } from './services/api';
 import { wsClient } from './services/websocket';
+import { CameraPerceptionResult } from './services/cameraPerception';
 import {
   Sensor, Machine, Worker, Camera, Incident, Action, RiskAssessment,
   AgentStatus, AgentLogEntry, Zone3D, InventoryItem, ClientItem,
@@ -59,6 +61,7 @@ export function App() {
   const [confirmingAction, setConfirmingAction] = useState<Action | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentScenario, setCurrentScenario] = useState<string>('normal');
+  const [perceptionResults, setPerceptionResults] = useState<Record<string, CameraPerceptionResult>>({});
 
   // Initial Fetch & Setup
   useEffect(() => {
@@ -265,6 +268,16 @@ export function App() {
         <main className="flex-1 flex flex-col overflow-hidden relative p-3 gap-3">
           {currentSection === 'overview' && (
             <div className="flex-1 flex flex-col gap-3 min-h-0">
+              {/* Scenario Progress & Driver Panel */}
+              <ScenarioProgressPanel
+                currentScenario={currentScenario}
+                incidents={incidents}
+                actions={actions}
+                sensors={sensors}
+                machines={machines}
+                onAuthorizeAction={(act) => setConfirmingAction(act)}
+              />
+
               {/* 3D Factory Canvas */}
               <div className="flex-1 relative min-h-0">
                 <Factory3D
@@ -273,8 +286,11 @@ export function App() {
                   sensors={sensors}
                   zones={zones}
                   incidents={incidents}
+                  actions={actions}
+                  currentScenario={currentScenario}
                   selectedId={selected3DObject?.data?.id}
                   onSelectObject={setSelected3DObject}
+                  onPerceptionUpdate={setPerceptionResults}
                 />
 
                 {/* Inspect Modal Overlay */}
@@ -296,7 +312,7 @@ export function App() {
 
           {currentSection === 'workers' && <WorkersView workers={workers} />}
           {currentSection === 'inventory' && <InventoryView items={inventory} />}
-          {currentSection === 'cameras' && <CamerasView cameras={cameras} />}
+          {currentSection === 'cameras' && <CamerasView cameras={cameras} perceptionResults={perceptionResults} />}
           {currentSection === 'command-center' && (
             <div className="h-full glass-panel rounded-xl p-4 overflow-y-auto">
               <IoTCommandView
