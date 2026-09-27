@@ -641,3 +641,77 @@ locks that in so the cyber demo cannot regress. Extra payloads for Engineer 2 ar
 **P8**; until then the rules are covered by 15 synthetic-event tests.
 
 **114 pytest tests pass** (20 new for items 3 and 4).
+
+---
+
+## Groq as the primary model + feature-freeze verification (2026-09-27 ~11:40)
+
+**Model choice was measured, not guessed.** Queried `GET /v1/models` through the stored n8n
+credential (via a throwaway workflow, so the key never left n8n): this key exposes
+`openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `openai/gpt-oss-safeguard-20b` and
+`qwen/qwen3.8-27b` — plus Whisper, TTS and 512-token prompt-guard classifiers. **There is no Llama
+instruct model on this key**, so the suggested Llama 3.x was not an option. Primary is
+`openai/gpt-oss-120b` (131k context).
+
+**Groq changed the picture entirely:**
+
+| | Gemini `gemini-3.8-flash` | Groq `openai/gpt-oss-120b` |
+|---|---|---|
+| Latency, detection → enrichment | 37.7 s | **4.1 s** |
+| Live answers | 1 of 5 | **8 of 9** |
+| Rate limit hit? | constantly (5/min) | never |
+
+**Chain: Groq → Gemini → cached → template.** Groq and Gemini use the AI Agent's *native*
+primary/fallback support (`needsFallback: true`, two `ai_languageModel` inputs), so the fallback is
+n8n's own mechanism rather than something bolted on. The cached layer is in the backend and the
+template is the agent's error branch.
+
+**The incident text names the model that actually answered.** The Validate node asks n8n which
+model node ran (`$('Groq Chat Model (primary)').isExecuted`, in a try/catch), so a silent fallback
+is still visible: `openai/gpt-oss-120b on Groq`, `Gemini (Groq unavailable, fell back)`,
+`cached … answer from <time>`, or `template fallback`.
+
+**Cache warmed 3/3**, each with sections the model really retrieved — `SOP-M04 §2/§4.2`,
+`FIRE-EP-03 §2/§3.2/§3.3`, `OT-CYBER-PB §2/§3.1/§3.2`. Committed, so the demo has LLM-quality
+wording even with no internet. One caveat worth knowing on stage: the overheating answer was
+captured at *warning* level, so it cites §4.1/§2 and chooses cooling rather than the shutdown. The
+deterministic `STOP_MACHINE` card is created at detection regardless, so the AUTHORIZE click is
+unaffected — only the replayed wording omits it.
+
+**Feature-freeze verification — `python n8n/final_verification.py --rounds 3`: all checks passed in
+every round.** Three rounds of all four scenarios: overheating CRITICAL 0.94 with machine +
+temperature + worker evidence; fire CRITICAL 0.85 naming SMOKE-B-01; cyber HIGH 0.80 naming
+UNKNOWN-DEVICE-07; normal silent. Groq served 8 of 9 incidents. Alongside: **115 pytest tests**,
+`e2e_test.py` **15/15**, `gate1_verify.py` **13/13**.
+
+---
+
+## Merged upstream main into the branch (2026-09-27 ~12:25)
+
+`git fetch upstream && git merge upstream/main` — **no conflicts.** Merge base was PR #1's head, so
+upstream is my PR #1 plus the team's work since: the Digital Twin 3D components, the
+`standalone-3d-ai-copilot` app, `task.md`, and Engineer 2's additions to `simulator.py` (+162) and
+`command_engine.py` (+17). My commits since PR #1 touched only `backend/ai`, `backend/tests`, `n8n`
+and `docs/ai`, none of which upstream changed, so everything merged cleanly and **all of the team's
+changes are kept**.
+
+**Good news on their side:** they kept my P5 markers and every Engineer 1 hook, and added a cleaner
+`simulator.notify_action_executed(action_type, target)` API plus more sensor publishes.
+
+**Verified on the merged code:** `n8n/final_verification.py --rounds 2` — all checks passed in both
+rounds, Groq served 6 of 6 incidents, all four scenarios correct. **114 pytest tests pass, 1
+xfailed** (see below).
+
+### One conflict found, recorded rather than overruled — P9
+
+Their `execute_action` now marks **every** action in state that is `AWAITING_APPROVAL` as
+`COMPLETED` when a mitigation action runs. That reports actions as executed when no actuator ran,
+bypasses the approval gate on HIGH-risk actions like `EVACUATE_ZONE`, and is not scoped to the
+incident. It contradicts the claim we make on stage and in the PR that a human authorises anything
+that moves people.
+
+`ai/resolution_policy.py` already does this correctly — scoped to the incident, marked `CANCELLED`
+with a reason. **I did not change their code**: it is a deliberate change in a file I only hold
+hooks in, and Firas asked to keep teammates' changes. Instead the test that encodes the correct
+behaviour is marked `xfail` with the full explanation in the code, and the fix is written up as
+**P9** for Firas to agree with Engineer 2. Removing the block should make the test pass unchanged.

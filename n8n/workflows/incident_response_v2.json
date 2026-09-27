@@ -47,7 +47,8 @@
         "options": {
           "systemMessage": "You are the recommendation agent of an industrial safety copilot. A deterministic detection layer has already decided that an incident exists and how confident it is. Your job is only to explain it and to choose the response from a fixed catalogue.\n\nHard rules:\n1. Choose actions ONLY by copying ids from the allowed_actions list in the user message. Never invent an id, never invent an action, never describe an action that is not in that list. Ids you make up are rejected by the backend and wasted.\n2. You do NOT set risk levels, you do NOT decide what needs human approval, and you do NOT set the confidence figure. Those come from the catalogue and from sensor fusion.\n3. Cite the procedure sections you actually retrieved, using the citation string the tool returns (for example \"SOP-M04 \u00a74.2\"). If you retrieved nothing, return an empty sources array. Never cite a section you did not retrieve.\n4. Quote the real readings from the evidence. Never introduce numbers that are not in the input.\n5. Never claim certainty. Write \"risk of\", \"expected to\", \"consistent with\". A prediction is a risk assessment, not a fact.\n6. Always search the procedures before recommending. Use procedure_search; you may also use procedure_vector_search. Prefer the order of actions the procedure specifies.\n\nUse the tools, then answer with the structured object only.\n\nExample of a good answer for a machine overheating incident:\n{\"what\":\"Hydraulic overpressure and over-temperature developing on M-04 in ZONE_B\",\"why\":[\"M-04 pressure 8.32 bar, over its 8.0 bar operating limit\",\"M-04 body temperature 82.9 \u00b0C, at or over its 80 \u00b0C limit\",\"Ambient TEMP-B-01 at 47.9 \u00b0C against a 50 \u00b0C critical threshold\"],\"impact\":\"3 people exposed in ZONE_B (W23, W41, W52) and unplanned loss of M-04\",\"prediction\":\"Risk of hydraulic line rupture and spindle seizure if the trend continues\",\"recommended_action_ids\":[\"stop_machine\",\"evacuate_zone\",\"activate_cooling\"],\"sources\":[{\"document\":\"SOP-M04\",\"section\":\"\u00a74.2\"},{\"document\":\"EVAC-PROC\",\"section\":\"\u00a72\"}]}\n\nBUDGET \u2014 this matters. You are running on a rate-limited free tier (5 model calls per minute).\nEvery tool call costs a model call. So:\n- Call procedure_search EXACTLY ONCE, with one good query naming the hazard and the asset.\n- Do NOT call procedure_vector_search unless procedure_search returned nothing usable.\n- Then answer. Do not re-search to double-check, and do not call a tool after you already have\n  the sections you need.",
           "maxIterations": 3
-        }
+        },
+        "needsFallback": true
       }
     },
     {
@@ -187,7 +188,7 @@
         304
       ],
       "parameters": {
-        "jsCode": "\n// One entry point for both paths: the agent's structured output, or the template fallback.\n// Reads the original payload off the trigger node, because item pairing is not reliable after\n// an agent call. Belt and braces on the ids: the backend validates them against the catalogue\n// too, but an id that never leaves n8n is one fewer rejection to explain.\nconst src = $('Incident webhook').first().json.body;\nconst item = $input.first().json;\nconst fromAgent = item.output && typeof item.output === 'object' ? item.output : null;\nconst body = fromAgent || item;\n\nconst allowed = new Set((src.allowed_actions || []).map(a => a.id));\nconst proposed = Array.isArray(body.recommended_action_ids) ? body.recommended_action_ids : [];\nconst validated = [...new Set(proposed.map(id => String(id).trim().toLowerCase()))]\n  .filter(id => allowed.has(id));\nconst rejected = [...new Set(proposed)].filter(id => !allowed.has(String(id).trim().toLowerCase()));\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    what: body.what || '',\n    why: Array.isArray(body.why) ? body.why : [],\n    impact: body.impact || '',\n    prediction: body.prediction || '',\n    sources: Array.isArray(body.sources) ? body.sources : [],\n    recommended_action_ids: validated,\n    rejected_action_ids: rejected,\n    produced_by: body.produced_by || ('models/gemini-3.8-flash' + ' via n8n AI Agent'),\n    fallback: body.fallback === true,\n  },\n}];"
+        "jsCode": "\n// One entry point for both paths: the agent's structured output, or the template fallback.\n// Reads the original payload off the trigger node, because item pairing is not reliable after\n// an agent call. Belt and braces on the ids: the backend validates them against the catalogue\n// too, but an id that never leaves n8n is one fewer rejection to explain.\nconst src = $('Incident webhook').first().json.body;\nconst item = $input.first().json;\nconst fromAgent = item.output && typeof item.output === 'object' ? item.output : null;\nconst body = fromAgent || item;\n\nconst allowed = new Set((src.allowed_actions || []).map(a => a.id));\nconst proposed = Array.isArray(body.recommended_action_ids) ? body.recommended_action_ids : [];\nconst validated = [...new Set(proposed.map(id => String(id).trim().toLowerCase()))]\n  .filter(id => allowed.has(id));\nconst rejected = [...new Set(proposed)].filter(id => !allowed.has(String(id).trim().toLowerCase()));\n\n\n// MODEL PROVENANCE -- which model actually produced this answer?\n// The agent falls back from Groq to Gemini silently, so ask n8n which model node ran. Wrapped in\n// try/catch because `isExecuted` is not available in every n8n version, and a label is never\n// worth breaking an incident over.\nlet modelUsed = 'n8n AI Agent (Groq primary, Gemini fallback)';\ntry {\n  if ($('Groq Chat Model (primary)').isExecuted) {\n    modelUsed = 'openai/gpt-oss-120b on Groq';\n  } else if ($('Google Gemini Chat Model').isExecuted) {\n    modelUsed = 'Gemini (Groq unavailable, fell back)';\n  }\n} catch (e) { /* keep the generic label */ }\n\nreturn [{\n  json: {\n    incident_id: src.incident_id,\n    backend_base_url: src.backend_base_url,\n    what: body.what || '',\n    why: Array.isArray(body.why) ? body.why : [],\n    impact: body.impact || '',\n    prediction: body.prediction || '',\n    sources: Array.isArray(body.sources) ? body.sources : [],\n    recommended_action_ids: validated,\n    rejected_action_ids: rejected,\n    produced_by: body.produced_by || (modelUsed + ' via n8n AI Agent'),\n    fallback: body.fallback === true,\n  },\n}];"
       }
     },
     {
@@ -413,6 +414,28 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       }
+    },
+    {
+      "id": "groq-primary-chat-model",
+      "name": "Groq Chat Model (primary)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        -348,
+        684
+      ],
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "EC5XdZtsC5aII4ad",
+          "name": "OpenAI account"
+        }
+      }
     }
   ],
   "connections": {
@@ -575,7 +598,7 @@
           {
             "node": "Recommendation AI Agent",
             "type": "ai_languageModel",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -640,6 +663,17 @@
         [
           {
             "node": "Procedure search (vector store)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model (primary)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Recommendation AI Agent",
             "type": "ai_languageModel",
             "index": 0
           }

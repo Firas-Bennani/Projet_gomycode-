@@ -28,11 +28,12 @@ cd frontend; npm run dev        # http://localhost:5173
 Then the checklist in `n8n/README.md` §4b, of which these three actually bite:
 
 - [ ] `python n8n/import_workflows.py --list` → **exactly one** active incident workflow
-      (`Incident Response v2 (Gemini + RAG)`).
+      (`Incident Response v2 (Gemini + RAG)` — the name predates Groq; Groq is now the primary
+      model inside it and Gemini the fallback).
 - [ ] **Re-run the RAG ingestion** in n8n. The Simple Vector Store is in memory and says so:
       *"data will be lost if n8n restarts."* Assume it is empty.
 - [ ] `curl http://127.0.0.1:8000/api/ai/n8n/llm-cache` → shows cached answers per hazard type.
-      This is the safety net for Gemini; see §5.
+      This is the last-resort safety net; see §5. All three hazard types are pre-warmed.
 
 Open two browser windows side by side: **the dashboard** (left, larger) and **n8n → Executions**
 (right). The n8n window is half the story — it is the evidence that this is an orchestrated
@@ -87,10 +88,22 @@ Click **machine_overheating**. Keep the n8n Executions tab visible.
 > chose the actions, but only from a fixed catalogue of eight; it cannot invent an action, and it
 > cannot set the risk level or decide what needs a human."
 
+**Point at the last line of the reasoning.**
+
+> "And it tells you which model wrote this — `openai/gpt-oss-120b on Groq`. If Groq were down it
+> tries Gemini and says so; if both are down, a cached answer with its timestamp; if all three,
+> the deterministic template. Four levels, and the incident resolves on every one of them."
+
+That is verified, not asserted: breaking the Groq model id produced one execution in which Groq
+errored, **Gemini was attempted** and hit its 429 quota, the agent took its error branch, the
+template ran, and the backend replaced it with the cached Groq answer — citations intact, incident
+resolved. See `METRICS.md §2.0b`. If you want to show it live, break the Groq node's model in n8n
+and re-run.
+
 **Seconds 30–60. Switch to the n8n window.** The execution is sitting on **Wait**.
 
-> "The incident went to n8n. It ran retrieval, called Gemini, posted the explanation back, and is
-> now *waiting* — for a human. It will wait ten minutes."
+> "The incident went to n8n. It ran retrieval, called the model, posted the explanation back, and
+> is now *waiting* — for a human. It will wait ten minutes."
 
 **Now click AUTHORIZE on STOP_MACHINE only.**
 
@@ -167,8 +180,9 @@ curl -X POST http://127.0.0.1:8000/api/demo/scenario -H "Content-Type: applicati
 
 | If this happens | What you will see | What to do |
 |---|---|---|
-| **Gemini fails** (very likely — 4 of 5 attempts failed in testing: 404 model retired, 429 quota, 503 overload) | reasoning says `— enriched by cached … answer from <time>` or `template fallback` | **Nothing. Say it out loud:** "the model is unavailable, so it replayed the last good answer, labelled and dated — and the incident still resolved. That path ran four times for real while we built this." |
-| You ran two scenarios back to back and lost the LLM wording | `template fallback` | Free tier is **5 model calls per minute**, one incident costs ~3. Leave 60 s between scenarios. |
+| **The model fails** | reasoning reads `Gemini (Groq unavailable, fell back)`, `cached … answer from <time>`, or `template fallback` | **Nothing. Say it out loud:** "the primary model is unavailable, so it fell through the chain — and the incident still resolved. Every one of those paths ran for real while we built this." |
+| Groq is fine but you want to show the fallback | — | In n8n, set the Groq node's model to nonsense and re-run: Gemini answers instead, and the incident text says so. `python n8n/llm_roundtrip.py --break` does the same for Gemini. |
+| Gemini-only (if Groq is down too) | slower, ~38 s, may 429 | Gemini free tier is **5 calls/minute** and one incident costs ~3. Leave 60 s between scenarios. |
 | n8n restarted, RAG returns nothing | no `SOURCES` line | Re-run the RAG ingestion (15 s). Retrieval also falls back to the backend keyword RAG, which needs no ingestion. |
 | n8n is down entirely | no enrichment, plainer text | **The demo still works.** Detection, actions, approval, verification and resolution are all backend-side. Say so — it is the point. |
 | Backend was killed for memory | dashboard goes stale | restart with the command in §0; n8n keeps its state on disk |
@@ -191,7 +205,7 @@ detection path needs a network.
 | Cross-machine transfer (SKAB) | **AUC 0.495 — chance.** We measured it and we say so |
 | Smoke model | F1 0.93, **rejected for cause** |
 | Procedure corpus | 5 documents, **31 numbered sections**, retrieved and cited by section |
-| LLM live latency | **37.7 s**; reliability **1 of 5** attempts, hence the cache |
+| LLM live latency | **4.1 s** on Groq (`openai/gpt-oss-120b`), 8 of 9 incidents served; Gemini was 37.7 s and 1 of 5, hence the fallback chain |
 | Action catalogue | **8 actions**, the only ones the model may choose from |
 | Confidence | fused, **0.80 – 0.94** depending on evidence; never a literal |
 

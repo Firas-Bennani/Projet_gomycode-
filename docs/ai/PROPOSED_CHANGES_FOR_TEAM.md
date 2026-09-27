@@ -305,3 +305,78 @@ its zone is past its own temperature limit. To drive it live, the cyber scenario
 *while* the overheating scenario is active, or emit the `SPOOFED_SENSOR` payload above.
 
 Nothing on Engineer 1's side needs changing when this lands — the rules are already there.
+
+---
+
+## ✅ P9 — APPLIED by Engineer 1 on 2026-09-27 at 12:45, on Firas's instruction. **Please review.**
+
+**Engineer 2 had not replied at the time of writing, so this was applied on Firas's decision after
+no reply.** Raised at ~12:20 after merging upstream main; applied at ~12:45. If you disagree,
+reverting is deleting one comment block and restoring five lines — but please read why first.
+
+**What was removed:** the five lines in `execute_action` quoted below. **What replaces it:** nothing
+new — `ai/resolution_policy.evaluate_incident_after(action)` was already being called a few lines
+further down and already did the job properly.
+
+**Verified live after applying:** authorising **only** `STOP_MACHINE` on an overheating incident
+leaves `ACTIVATE_COOLING` and `EVACUATE_ZONE` as **CANCELLED** (2 of 2), **zero** actions marked
+COMPLETED without a verification record, the incident **RESOLVED**, and the agent log carries the
+reason: *"INC-E10D resolved by the 'hazard_resolver_completed' rule: STOP_MACHINE completed and the
+hazard is receding (machine parameters back inside limits). 2 pending action(s) cancelled as
+superseded"*. 115 pytest tests pass (the test that encoded this is a normal passing test again, no
+longer xfail), `final_verification.py` all green, `e2e_test.py` 15/15 three runs in a row.
+
+---
+
+### The original report, for the record
+
+Detection, the demo and every scenario were unaffected; this was about what the dashboard *claims*.
+
+The merged `execute_action` now contains:
+
+```python
+# If primary mitigation action executed, complete companion actions and resolve all active zone incidents
+if action.action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION",
+                          "EVACUATE_ZONE", "ISOLATE_DEVICE", "CLOSE_DOOR"]:
+    for a in state.actions.values():
+        if a.status == ActionStatus.AWAITING_APPROVAL:
+            a.status = ActionStatus.COMPLETED
+            a.completed_at = datetime.utcnow()
+```
+
+I understand the intent — don't leave cards stuck at AWAITING_APPROVAL once the hazard is handled.
+Three problems with this particular form:
+
+1. **It reports work that never happened.** Those actions are marked `COMPLETED` without any
+   actuator running and with `verification` left empty. `EVACUATE_ZONE` shows as completed when
+   nobody was evacuated and no thermal sweep confirmed the zone is clear.
+2. **It bypasses the approval gate.** `EVACUATE_ZONE` and `ACTIVATE_SUPPRESSION` are HIGH risk and
+   `requires_confirmation=True` precisely so a human decides. This completes them without a click,
+   which contradicts what we say on stage and in the PR: *"a human authorises anything that costs
+   money or moves people."*
+3. **It is not scoped to the incident.** `state.actions.values()` is every action in the plant, so
+   it also completes actions belonging to other, unrelated incidents.
+
+**The intent is already implemented correctly** in `ai/resolution_policy.py`: when every
+hazard-resolving action has completed and the readings are receding, the remaining actions **for
+that incident** are set to `CANCELLED` — "superseded, hazard already addressed" — with the reason
+written to the agent log. Nothing is claimed to have run that did not.
+
+### Suggested fix — delete the block
+
+`resolution_policy.evaluate_incident_after(action)` is already called a few lines below and does the
+job. If you would rather keep an explicit step there, the honest version is:
+
+```python
+        # Companion actions the remedy made unnecessary, scoped to THIS incident, marked
+        # cancelled rather than completed because no actuator ran for them.
+        if action.action_type in ("STOP_MACHINE", "ACTIVATE_SUPPRESSION", "ISOLATE_DEVICE"):
+            for a in state.actions.values():
+                if a.incident_id == action.incident_id and a.status == ActionStatus.AWAITING_APPROVAL:
+                    a.status = ActionStatus.CANCELLED
+```
+
+**Status in my branch:** the test that encodes the correct behaviour
+(`test_optional_actions_are_cancelled_once_the_hazard_is_addressed`) is marked `xfail` with this
+whole explanation attached, so the conflict is visible in the code rather than papered over. Remove
+the `xfail` when the block is fixed and the test should pass unchanged.

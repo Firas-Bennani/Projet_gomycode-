@@ -1,0 +1,91 @@
+{
+  "INDUSTRIAL_FIRE": {
+    "what": "Industrial fire detected in ZONE_B on sensor SMOKE-B-01",
+    "why": [
+      "High particulate density 75.0 ppm on SMOKE-B-01, exceeding the critical threshold of 40 ppm",
+      "Reading persisted above the critical level across consecutive samples",
+      "Three workers (W23, W41, W52) present in hazard sector ZONE_B"
+    ],
+    "impact": "3 workers (W23, W41, W52) exposed in ZONE_B",
+    "prediction": "Risk of fire development and potential injury to personnel if the condition persists",
+    "recommended_action_ids": [
+      "trigger_alarm",
+      "evacuate_zone",
+      "close_door",
+      "activate_suppression"
+    ],
+    "sources": [
+      {
+        "document": "FIRE-EP-03",
+        "section": "§2"
+      },
+      {
+        "document": "FIRE-EP-03",
+        "section": "§3.2"
+      },
+      {
+        "document": "FIRE-EP-03",
+        "section": "§3.3"
+      }
+    ],
+    "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
+    "cached_at": "2026-09-27T10:40:49"
+  },
+  "MACHINE_OVERHEATING": {
+    "what": "Machine overheating on M-04 in ZONE_B",
+    "why": [
+      "M-04 pressure 7.77 bar, above the 7.2 bar warning level (limit 8.0 bar)",
+      "M-04 body temperature 77.3 °C, within 10 % of its 80 °C limit",
+      "Ambient temperature TEMP-B-01 42.3 °C, above the 35 °C warning threshold (limit 50 °C)",
+      "Three workers (W23, W41, W52) present in hazard sector ZONE_B"
+    ],
+    "impact": "3 workers (W23, W41, W52) exposed in ZONE_B and unplanned loss of M-04",
+    "prediction": "Risk of the machine body temperature exceeding its 80 °C limit, potentially causing spindle seizure or fire if the trend continues",
+    "recommended_action_ids": [
+      "stop_machine",
+      "evacuate_zone",
+      "activate_cooling"
+    ],
+    "sources": [
+      {
+        "document": "SOP-M04",
+        "section": "§2"
+      },
+      {
+        "document": "SOP-M04",
+        "section": "§4.2"
+      }
+    ],
+    "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
+    "cached_at": "2026-09-27T10:46:23"
+  },
+  "CYBER_INTRUSION": {
+    "what": "Cyber intrusion brute force on UNKNOWN-DEVICE-07 targeting Industrial Modbus Gateway (192.168.10.45) in ZONE_B",
+    "why": [
+      "47 failed authentication attempts from UNKNOWN-DEVICE-07 against Industrial Modbus Gateway within 60 s (threshold 20)",
+      "UNKNOWN-DEVICE-07 is not listed in the OT asset inventory but is transacting with the Modbus gateway"
+    ],
+    "impact": "0 people in ZONE_B are directly exposed, but the Industrial Modbus Gateway and surrounding OT network are at risk of unauthorized control",
+    "prediction": "Risk of further unauthorized commands or disruption to control processes if the brute‑force activity continues",
+    "recommended_action_ids": [
+      "vlan_quarantine",
+      "isolate_device"
+    ],
+    "sources": [
+      {
+        "document": "OT-CYBER-PB",
+        "section": "§2"
+      },
+      {
+        "document": "OT-CYBER-PB",
+        "section": "§3.1"
+      },
+      {
+        "document": "OT-CYBER-PB",
+        "section": "§3.2"
+      }
+    ],
+    "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
+    "cached_at": "2026-09-27T10:33:59"
+  }
+}
