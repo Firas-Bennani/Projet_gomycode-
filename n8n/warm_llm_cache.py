@@ -29,6 +29,9 @@ SCENARIOS = [
     ("machine_overheating", "MACHINE_OVERHEATING", 14),
     ("fire", "INDUSTRIAL_FIRE", 14),
     ("cybersecurity", "CYBER_INTRUSION", 9),
+    # The predictive one. Its incident is raised while the forecast is still firming up, well
+    # before the strike at tick 25, so it needs less waiting than the reactive scenarios.
+    ("storm_forecast", "SEVERE_WEATHER_RISK", 8),
 ]
 
 
@@ -113,8 +116,8 @@ def main():
         print(f"  {key:<22} {entry.get('produced_by')} at {entry.get('cached_at')}")
         print(f"                         actions={entry.get('action_ids')} sources={entry.get('sources')}")
     missing = {t for _, t, _ in SCENARIOS} - set(status.get("types_cached", []))
-    print(f"\nwarmed: {len(status.get('types_cached', []))}/3" +
-          (f"  still missing: {sorted(missing)}" if missing else "  (all three)"))
+    print(f"\nwarmed: {len(status.get('types_cached', []))}/{len(SCENARIOS)}" +
+          (f"  still missing: {sorted(missing)}" if missing else "  (all of them)"))
     return 0
 
 

@@ -150,6 +150,13 @@ class RecommendationAgent(BaseAgent):
         cyber_obs = [o for o in obs_list if o.get("agent_id") == "cyber_agent"]
         worker_obs = next((o for o in obs_list if o.get("agent_id") == "worker_agent"), None)
 
+        weather_obs = [o for o in obs_list if o.get("agent_id") == "weather_agent"]
+
+        # 0. A forecast outranks nothing, but it is its own hazard: it is the only one with lead
+        #    time, so it gets its own incident rather than being folded into a physical one.
+        if weather_obs:
+            return self._weather_incident(weather_obs, worker_obs, resolved_zone)
+
         # 1. Cyber is an independent domain and never competes with physical hazards.
         if cyber_obs:
             return self._cyber_incident(cyber_obs, worker_obs, resolved_zone)
@@ -365,6 +372,85 @@ class RecommendationAgent(BaseAgent):
             "affected_assets": sorted({o.get("machine_id") for o in machine_obs if o.get("machine_id")}),
             "affected_workers": workers,
             "evidence": self._evidence(hazard_obs + ([worker_obs] if worker_obs else [])),
+            "ai_reasoning": reasoning,
+            "recommended_actions": actions,
+            "status": "ACTIVE",
+        }
+
+    # ------------------------------------------------------------------ severe weather
+
+    def _weather_incident(self, weather_obs, worker_obs, zone) -> Dict[str, Any]:
+        """A PREDICTIVE incident: the hazard has not happened yet and there is time to prevent it."""
+        from ai import weather as weather_module
+
+        rag_engine.query("severe weather thunderstorm load shedding pressure setpoint UPS")
+        primary = max(weather_obs, key=lambda o: o.get("probability_pct", 0.0))
+        risk = risk_engine.assess(
+            weather_obs, "SEVERE_WEATHER_RISK",
+            assets=primary.get("exposed_assets") or weather_module.EXPOSED_ASSETS,
+            workers_exposed=len(self._workers_in(zone, worker_obs)),
+        )
+
+        lead = primary.get("lead_time_minutes", 0)
+        exposed_zones = primary.get("exposed_zones") or weather_module.EXPOSED_ZONES
+        workers = []
+        for exposed in exposed_zones:
+            workers.extend(self._workers_in(exposed, None))
+        workers = sorted(set(workers))
+
+        context = {"zone": zone, "machine_id": "M-04"}
+        from ai.actions_catalog import CATALOG
+        order = ["load_shedding", "reduce_pressure_setpoint", "switch_to_ups",
+                 "reinforce_electrical_crew"]
+        actions = [CATALOG[key].to_recommended_action(context) for key in order if key in CATALOG]
+
+        why = [f"{i + 1}) {line}." for i, line in enumerate(
+            [f"Thunderstorm forecast in ~{lead} min with "
+             f"{primary.get('probability_pct', 0):.0f}% probability "
+             f"({primary.get('forecast_source', 'simulated')} feed)"]
+            + list(primary.get("instability_indicators") or [])
+            + [f"Exposed: {', '.join(primary.get('exposed_assets') or [])}"])]
+
+        impact = (
+            f"{len(workers)} person(s) in the exposed zones "
+            f"({', '.join(workers) if workers else 'none detected'}); risk of a surge-driven "
+            f"overpressure on M-04, a controller outage, and an unplanned plant trip."
+        )
+        reasoning = self._reasoning(
+            what=f"Severe weather forecast over the plant, arriving in about {lead} minutes. "
+                 f"This is a prediction, not a measurement — there is time to act.",
+            why=why,
+            risk=risk,
+            impact=impact,
+            todo="Shed non-critical load, lower the compressor setpoint to 6.5 bar, move "
+                 "controllers to UPS, and reinforce the electrical crew — all before the front "
+                 "arrives.",
+            approver="Owner confirmation required: load shedding and a setpoint change both "
+                     "affect production.",
+        )
+        # The forecast probability is the evidence, so show that arithmetic too.
+        if primary.get("source_confidence_math"):
+            reasoning += "\nFORECAST BASIS: " + primary["source_confidence_math"] + "."
+        reasoning += ("\nLEAD TIME: ~" + str(lead) + " min. Acting now is what makes this preventable;"
+                      " after the front arrives these actions no longer help.")
+
+        self.update_status(
+            task="Severe weather hypothesis for the site",
+            observation=f"Thunderstorm in ~{lead} min, probability "
+                        f"{primary.get('probability_pct', 0):.0f}%.",
+            decision="Declare SEVERE_WEATHER_RISK and request plant preparation.",
+            status="WARNING",
+        )
+        return {
+            "id": f"INC-{uuid.uuid4().hex[:4].upper()}",
+            "type": "SEVERE_WEATHER_RISK",
+            "severity": SEVERITY_ENUM[risk.severity],
+            "confidence": risk.confidence,
+            "zone": zone,
+            "timestamp": clock.now(),
+            "affected_assets": list(primary.get("exposed_assets") or []),
+            "affected_workers": workers,
+            "evidence": self._evidence(weather_obs + ([worker_obs] if worker_obs else [])),
             "ai_reasoning": reasoning,
             "recommended_actions": actions,
             "status": "ACTIVE",

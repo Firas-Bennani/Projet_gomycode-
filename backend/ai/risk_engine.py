@@ -52,12 +52,14 @@ ASSET_CRITICALITY: Dict[str, int] = {
 DEFAULT_ASSET_CRITICALITY = 2
 
 #: Hazards that injure people directly rather than only destroying equipment.
-DIRECT_HARM_TYPES = ("INDUSTRIAL_FIRE", "MACHINE_OVERHEATING")
+DIRECT_HARM_TYPES = ("INDUSTRIAL_FIRE", "MACHINE_OVERHEATING", "SEVERE_WEATHER_RISK")
 
 #: Base impact per hazard type, before the +1 modifiers.
 HAZARD_IMPACT_BASE = {
     "INDUSTRIAL_FIRE": 3,      # life safety, spreads
     "CYBER_INTRUSION": 3,      # controller manipulation, spoofed readings
+    "SEVERE_WEATHER_RISK": 3,  # site-wide: switchyard, electrical rooms, compressor house
+    "AGENT_COMPROMISE": 3,     # the reasoning layer itself is not trustworthy
     "MACHINE_OVERHEATING": None,  # taken from the asset's own criticality
 }
 
@@ -170,7 +172,11 @@ def fuse(observations: List[Dict[str, Any]]) -> Tuple[float, List[Contribution],
 
     for observation in observations:
         severity = str(observation.get("severity", "INFO")).upper()
-        base = SOURCE_CONFIDENCE.get(severity)
+        # A source may state its own likelihood instead of having one inferred from a severity
+        # label. The weather agent does this: for a forecast, the forecast probability *is* the
+        # evidence, so mapping WARNING -> 0.60 would throw away the actual number.
+        base = observation.get("source_confidence")
+        base = float(base) if base is not None else SOURCE_CONFIDENCE.get(severity)
         if base is None:
             continue
         source_id = source_id_of(observation)

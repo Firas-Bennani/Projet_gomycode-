@@ -20,7 +20,10 @@ from iot.simulator import simulator
 
 #: Events the plant emits. Anything the AI layer publishes itself (INCIDENT_*, ACTION_*)
 #: is not fed back in, so a run cannot amplify its own output.
-PLANT_EVENT_TYPES = {"SENSOR_READING", "MACHINE_STATUS", "CYBER_EVENT", "WORKER_UPDATE"}
+PLANT_EVENT_TYPES = {"SENSOR_READING", "MACHINE_STATUS", "CYBER_EVENT", "WORKER_UPDATE",
+                     # the weather feed and the storm strike are plant inputs too: the
+                     # forecast is what makes the storm scenario predictive.
+                     "FORECAST_UPDATE", "STORM_IMPACT"}
 
 
 async def cancel_stray_tasks() -> None:

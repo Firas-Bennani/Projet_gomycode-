@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, RotateCcw, Flame, ShieldAlert, Sparkles, AlertTriangle } from 'lucide-react';
+import { Play, RotateCcw, Flame, ShieldAlert, Sparkles, AlertTriangle, CloudLightning } from 'lucide-react';
 
 interface DemoScenarioBarProps {
   currentScenario: string;
@@ -68,6 +68,19 @@ export const DemoScenarioBar: React.FC<DemoScenarioBarProps> = ({
         >
           <Flame className="w-3.5 h-3.5 text-amber-400" />
           <span>Scenario 3: Factory Fire</span>
+        </button>
+
+        <button
+          onClick={() => onTriggerScenario('storm_forecast')}
+          title="Predictive: a storm is forecast, the plant is prepared before it arrives"
+          className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            currentScenario === 'storm_forecast'
+              ? 'bg-sky-600/40 text-sky-300 border border-sky-500/60 shadow-sm animate-pulse'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
+          }`}
+        >
+          <CloudLightning className="w-3.5 h-3.5 text-sky-400" />
+          <span>Scenario 4: Storm Forecast (predictive)</span>
         </button>
 
         <button

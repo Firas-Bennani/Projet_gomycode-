@@ -9,6 +9,12 @@ from app.models.schemas import Severity
 
 logger = logging.getLogger("simulator")
 
+#: item A: one forecast update per tick while the front approaches, then a quiet stretch
+#: that is the operator's window to read the incident and authorise the preparation, then
+#: the strike. ~20 s of window is deliberate: the demo has to show a decision being taken.
+STORM_FORECAST_TICKS = 7
+STORM_STRIKE_TICK = 25
+
 class IoTSimulator:
     def __init__(self):
         self.running = False
@@ -21,6 +27,12 @@ class IoTSimulator:
         # must stop driving the fault. command_engine sets these when the matching
         # action reaches COMPLETED.
         self.stopped_machines: set = set()
+        # ---- item A: severe weather preparation state ----------------------------------
+        # Set by command_engine when the matching action completes. They decide whether the
+        # simulated storm causes an overpressure or is absorbed.
+        self.load_shed: bool = False
+        self.pressure_setpoint_reduced: bool = False
+        self.storm_struck: bool = False
         self.cooling_active: bool = False
         self.suppression_active: bool = False
 
@@ -47,6 +59,9 @@ class IoTSimulator:
         self.scenario = scenario_name
         self.scenario_step = 0
         self.cooling_down = False
+        self.load_shed = False
+        self.pressure_setpoint_reduced = False
+        self.storm_struck = False
         self.lifecycle_phase = "IDLE" if scenario_name == "normal" else "DEVELOPING"
         logger.info(f"Simulator scenario switched to: {scenario_name} (phase: {self.lifecycle_phase})")
 
@@ -59,6 +74,9 @@ class IoTSimulator:
         self.stopped_machines.clear()
         self.cooling_active = False
         self.suppression_active = False
+        self.load_shed = False
+        self.pressure_setpoint_reduced = False
+        self.storm_struck = False
         state.initialize_state()
         await event_bus.publish(
             event_type="FACTORY_RESET",
@@ -73,6 +91,12 @@ class IoTSimulator:
         if action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION"]:
             self.cooling_down = True
             self.lifecycle_phase = "COOLING_DOWN"
+        # ---- item A (Firas): storm preparation. These two decide whether the simulated
+        # ---- storm strike causes an overpressure, so the demo shows prevention, not luck.
+        elif action_type == "LOAD_SHEDDING":
+            self.load_shed = True
+        elif action_type == "REDUCE_PRESSURE_SETPOINT":
+            self.pressure_setpoint_reduced = True
 
     async def tick(self):
         self.tick_count += 1
@@ -84,6 +108,8 @@ class IoTSimulator:
             await self._tick_overheating()
         elif self.scenario == "cybersecurity":
             await self._tick_cyber()
+        elif self.scenario == "storm_forecast":
+            await self._tick_storm_forecast()
         elif self.scenario == "fire":
             await self._tick_fire()
 
@@ -285,6 +311,76 @@ class IoTSimulator:
             zone="ZONE_B",
             severity=("INFO" if remedied else ("CRITICAL" if cur_pres >= 8.0 else "WARNING"))
         )
+
+    async def _tick_storm_forecast(self):
+        """Predictive scenario: a forecast arrives, then ~20 s later the storm actually hits.
+
+        Whether the strike causes an overpressure depends on what the owner authorised. That is
+        the whole argument of the scenario: the same weather, two outcomes.
+        """
+        from ai import weather
+
+        self.scenario_step += 1
+        step = self.scenario_step
+
+        if step <= STORM_FORECAST_TICKS:
+            forecast = weather.current_forecast(step - 1)
+            await event_bus.publish(
+                event_type="FORECAST_UPDATE",
+                source="weather:site_forecast",
+                data=forecast,
+                zone="GLOBAL",
+                severity="WARNING" if forecast["probability"] >= 50 else "INFO",
+            )
+            return
+
+        if step < STORM_STRIKE_TICK:
+            return
+
+        mitigated = self.load_shed and self.pressure_setpoint_reduced
+
+        if not self.storm_struck:
+            self.storm_struck = True
+            await event_bus.publish(
+                event_type="STORM_IMPACT",
+                source="weather:site_forecast",
+                data={"mitigated": mitigated,
+                      "load_shed": self.load_shed,
+                      "pressure_setpoint_reduced": self.pressure_setpoint_reduced},
+                zone="GLOBAL",
+                severity="INFO" if mitigated else "CRITICAL",
+            )
+
+        # The surge itself, expressed through M-04's hydraulics.
+        if "M-04" in state.machines:
+            machine = state.machines["M-04"]
+            if mitigated:
+                # Setpoint was already at 6.5 bar: the transient lands inside the margin.
+                pressure = 6.8
+                machine.status = Severity.INFO
+            else:
+                pressure = 8.9
+                machine.status = Severity.CRITICAL
+            machine.parameters["pressure"].value = pressure
+            machine.parameters["pressure"].status = machine.status
+            body = 62.0 if mitigated else 86.0
+            machine.parameters["temperature"].value = body
+            machine.parameters["temperature"].status = machine.status
+            if "PRES-B-01" in state.sensors:
+                state.sensors["PRES-B-01"].current_value = pressure
+
+            await event_bus.publish(
+                event_type="MACHINE_STATUS",
+                source="machine:M-04",
+                data={"machine_id": "M-04", "zone": "ZONE_B", "parameters": {
+                    "pressure": {"value": pressure},
+                    "temperature": {"value": body},
+                    "vibration": {"value": 2.6 if mitigated else 5.8},
+                    "rpm": {"value": 850 if self.load_shed else 1420},
+                }},
+                zone="ZONE_B",
+                severity="INFO" if mitigated else "CRITICAL",
+            )
 
     async def _tick_cyber(self):
         self.scenario_step += 1

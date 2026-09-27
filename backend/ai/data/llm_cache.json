@@ -3,13 +3,11 @@
     "what": "Industrial fire detected in ZONE_B on sensor SMOKE-B-01",
     "why": [
       "High particulate density 75.0 ppm on SMOKE-B-01, exceeding the critical threshold of 40 ppm",
-      "Reading persisted above the critical level across consecutive samples",
-      "Three workers (W23, W41, W52) present in hazard sector ZONE_B"
+      "Reading persisted across consecutive samples, meeting fire declaration criteria"
     ],
-    "impact": "3 workers (W23, W41, W52) exposed in ZONE_B",
-    "prediction": "Risk of fire development and potential injury to personnel if the condition persists",
+    "impact": "3 workers (W23, W41, W52) are present in ZONE_B",
+    "prediction": "Risk of fire development and potential injury to personnel if the hazard is not mitigated",
     "recommended_action_ids": [
-      "trigger_alarm",
       "evacuate_zone",
       "close_door",
       "activate_suppression"
@@ -29,18 +27,18 @@
       }
     ],
     "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
-    "cached_at": "2026-09-27T10:40:49"
+    "cached_at": "2026-09-27T14:03:30"
   },
   "MACHINE_OVERHEATING": {
     "what": "Machine overheating on M-04 in ZONE_B",
     "why": [
-      "M-04 pressure 7.77 bar, above the 7.2 bar warning level (limit 8.0 bar)",
-      "M-04 body temperature 77.3 °C, within 10 % of its 80 °C limit",
-      "Ambient temperature TEMP-B-01 42.3 °C, above the 35 °C warning threshold (limit 50 °C)",
-      "Three workers (W23, W41, W52) present in hazard sector ZONE_B"
+      "M-04 pressure 7.79 bar, above the 7.2 bar warning level (warning threshold 7.2 bar, limit 8.0 bar)",
+      "M-04 body temperature 77.3 °C, within 10 % of its 80 °C limit (warning threshold 72 °C)",
+      "ZONE_B ambient temperature 42.3 °C on TEMP-B-01, above the 35 °C warning threshold (limit 50 °C)",
+      "3 workers (W23, W41, W52) present in hazard sector ZONE_B"
     ],
-    "impact": "3 workers (W23, W41, W52) exposed in ZONE_B and unplanned loss of M-04",
-    "prediction": "Risk of the machine body temperature exceeding its 80 °C limit, potentially causing spindle seizure or fire if the trend continues",
+    "impact": "3 workers (W23, W41, W52) are exposed in ZONE_B and the machine M-04 may suffer thermal damage",
+    "prediction": "Risk of thermal damage to M-04 leading to spindle seizure or fire, and possible injury to the three workers if temperature exceeds the 80 °C limit",
     "recommended_action_ids": [
       "stop_machine",
       "evacuate_zone",
@@ -57,7 +55,7 @@
       }
     ],
     "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
-    "cached_at": "2026-09-27T10:46:23"
+    "cached_at": "2026-09-27T14:03:14"
   },
   "CYBER_INTRUSION": {
     "what": "Cyber intrusion brute force on UNKNOWN-DEVICE-07 targeting Industrial Modbus Gateway (192.168.10.45) in ZONE_B",
@@ -87,5 +85,35 @@
     ],
     "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
     "cached_at": "2026-09-27T10:33:59"
+  },
+  "SEVERE_WEATHER_RISK": {
+    "what": "Severe weather thunderstorm risk affecting Outdoor switchyard, Electrical room B, and Compressor house (M-04) in GLOBAL zone",
+    "why": [
+      "Thunderstorm forecast probability 58% exceeds the 50% threshold for raising a severe weather risk (WX-SP-07 §2)",
+      "CAPE 1240 J/kg indicates moderate instability, supporting the risk assessment (WX-SP-07 §2)",
+      "Assets exposed: Outdoor switchyard, Electrical room B, and Compressor house (M-04) as listed in the procedure (WX-SP-07 §1)"
+    ],
+    "impact": "13 personnel in GLOBAL zone (W23, W41, W52, W09, W113, W114, W115, W119, W120, W123, W126, W132, W133) are exposed to the severe weather risk",
+    "prediction": "Risk of electrical faults, equipment damage, and possible injury to personnel if the thunderstorm materializes",
+    "recommended_action_ids": [
+      "reinforce_electrical_crew",
+      "load_shedding"
+    ],
+    "sources": [
+      {
+        "document": "WX-SP-07",
+        "section": "§1"
+      },
+      {
+        "document": "WX-SP-07",
+        "section": "§2"
+      },
+      {
+        "document": "WX-SP-07",
+        "section": "§6"
+      }
+    ],
+    "produced_by": "openai/gpt-oss-120b on Groq via n8n AI Agent",
+    "cached_at": "2026-09-27T14:04:52"
   }
 }

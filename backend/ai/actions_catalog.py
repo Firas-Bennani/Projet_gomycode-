@@ -18,6 +18,7 @@ from app.models.schemas import RecommendedAction, RiskLevel
 FIRE = "INDUSTRIAL_FIRE"
 OVERHEAT = "MACHINE_OVERHEATING"
 CYBER = "CYBER_INTRUSION"
+WEATHER = "SEVERE_WEATHER_RISK"
 
 # What the action's target is derived from.
 TARGET_MACHINE = "machine"
@@ -149,6 +150,56 @@ CATALOG: Dict[str, CatalogEntry] = {
             reason="Extinguish the combustion source once personnel are clear.",
             hazards=[FIRE],
             resolves_hazard=True,
+        ),
+        # ---- severe weather: acted on BEFORE the event, which is the point ----------
+        CatalogEntry(
+            id="load_shedding",
+            label="Shed non-critical electrical load and derate machines to 60%",
+            action_type="LOAD_SHEDDING",
+            risk=RiskLevel.MEDIUM,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_ZONE,
+            reason="Reduce the electrical load exposed to a surge, and lower the energy stored in "
+                   "the plant before the front arrives.",
+            hazards=[WEATHER],
+            resolves_hazard=True,
+        ),
+        CatalogEntry(
+            id="reduce_pressure_setpoint",
+            label="Lower the compressor pressure setpoint on {target} to 6.5 bar",
+            action_type="REDUCE_PRESSURE_SETPOINT",
+            risk=RiskLevel.MEDIUM,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_MACHINE,
+            reason="Widen the margin to the 8.0 bar limit so a surge-driven excursion cannot "
+                   "reach it.",
+            hazards=[WEATHER],
+            resolves_hazard=True,
+        ),
+        CatalogEntry(
+            id="switch_to_ups",
+            label="Move PLCs and critical controllers to UPS and verify generator readiness",
+            action_type="SWITCH_TO_UPS",
+            risk=RiskLevel.MEDIUM,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_FIXED,
+            target_pattern="UPS-MAIN-01",
+            reason="Keep the control layer alive through a transient or an outage.",
+            hazards=[WEATHER],
+        ),
+        CatalogEntry(
+            id="reinforce_electrical_crew",
+            label="Call the on-call electrical crew to {zone}",
+            action_type="REINFORCE_ELECTRICAL_CREW",
+            risk=RiskLevel.LOW,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_ZONE,
+            reason="Shift reinforcement so a fault during the storm is handled in minutes.",
+            hazards=[WEATHER],
         ),
         # ---- cyber -----------------------------------------------------------------
         CatalogEntry(

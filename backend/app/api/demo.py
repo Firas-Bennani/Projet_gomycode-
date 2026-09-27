@@ -11,7 +11,9 @@ def trigger_scenario(req: DemoScenarioRequest):
         "normal": 0,
         "machine_overheating": 25,
         "cybersecurity": 15,
-        "fire": 20
+        "fire": 20,
+        "storm_forecast": 30,
+        "agent_attack": 20
     }
     return DemoScenarioResponse(
         status="STARTED",
