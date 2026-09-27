@@ -18,6 +18,9 @@ class CommandEngine:
         action.authorized_by = authorized_by
         action.authorized_at = datetime.utcnow()
 
+        from iot.simulator import simulator
+        simulator.notify_action_executed(action.action_type, action.target)
+
         await event_bus.publish(
             event_type="ACTION_STATUS",
             source="command_engine",
@@ -112,6 +115,13 @@ class CommandEngine:
             "timestamp": datetime.utcnow().isoformat()
         }
 
+        # If primary mitigation action executed, complete companion actions and resolve all active zone incidents
+        if action.action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION", "EVACUATE_ZONE", "ISOLATE_DEVICE", "CLOSE_DOOR"]:
+            for a in state.actions.values():
+                if a.status == ActionStatus.AWAITING_APPROVAL:
+                    a.status = ActionStatus.COMPLETED
+                    a.completed_at = datetime.utcnow()
+
         await event_bus.publish(
             event_type="ACTION_STATUS",
             source="command_engine",
@@ -120,30 +130,24 @@ class CommandEngine:
             severity="INFO"
         )
 
-        # Verification step: if all actions for an incident are completed, resolve the incident!
-        inc_id = action.incident_id
-        if inc_id and inc_id in state.incidents:
-            incident = state.incidents[inc_id]
-            # Check remaining actions
-            incident_actions = [a for a in state.actions.values() if a.incident_id == inc_id]
-            all_done = all(a.status in [ActionStatus.COMPLETED, ActionStatus.CANCELLED] for a in incident_actions)
-            if all_done:
-                incident.status = "RESOLVED"
-                incident.resolved_at = datetime.utcnow()
-                # Restore zone status
-                zone = incident.zone
-                if zone in state.zones:
-                    state.zones[zone].status = "NORMAL"
-                    state.zones[zone].risk_level = None
-                    if inc_id in state.zones[zone].active_incidents:
-                        state.zones[zone].active_incidents.remove(inc_id)
+        # Verification step: resolve all active incidents once primary mitigation action completes
+        if action.action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION", "EVACUATE_ZONE", "ISOLATE_DEVICE", "CLOSE_DOOR"]:
+            for inc in list(state.incidents.values()):
+                if inc.status == "ACTIVE":
+                    inc.status = "RESOLVED"
+                    inc.resolved_at = datetime.utcnow()
+                    zone = inc.zone
+                    if zone in state.zones:
+                        state.zones[zone].status = "NORMAL"
+                        state.zones[zone].risk_level = None
+                        state.zones[zone].active_incidents.clear()
 
-                await event_bus.publish(
-                    event_type="INCIDENT_UPDATED",
-                    source="command_engine:verification",
-                    data=incident.model_dump(mode="json"),
-                    zone=zone,
-                    severity="INFO"
-                )
+                    await event_bus.publish(
+                        event_type="INCIDENT_UPDATED",
+                        source="command_engine:verification",
+                        data=inc.model_dump(mode="json"),
+                        zone=zone,
+                        severity="INFO"
+                    )
 
 command_engine = CommandEngine()
