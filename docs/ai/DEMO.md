@@ -190,6 +190,79 @@ curl -X POST http://127.0.0.1:8000/api/demo/scenario -H "Content-Type: applicati
 
 ---
 
+## 4b. Storm forecast — 60 s. The predictive one. Record this.
+
+The other three scenarios are reactive: something is already too hot, too smoky, or already
+talking to a rogue device. This is the only one where the hazard has not happened yet, and the
+point is entirely the lead time. **The plant is prepared, the storm arrives, and nothing breaks.**
+
+Exact click order:
+
+1. **Reset** in the demo bar. Wait for the tiles to settle (~3 s).
+2. Click **Scenario 4: Storm Forecast (predictive)**.
+3. Go to the **multi-agent page (SYSTEM 1)**. For the first ~7 seconds the Weather &
+   Environmental Forecast Agent posts one forecast update per second: probability climbing
+   24% → 91%, CAPE 320 → 2740 J/kg, gusts 28 → 84 km/h, lead time falling 95 → 15 min.
+   Say out loud: *"this agent is the only one reasoning about something that has not happened."*
+4. Around **4–5 s** a `SEVERE_WEATHER_RISK` incident appears. Open it. Read three things:
+   - `LEAD TIME: ~N min. Acting now is what makes this preventable` — the whole argument.
+   - `FORECAST BASIS:` — the confidence arithmetic, probability plus CAPE/gust boosts, capped at
+     0.97 because a forecast is a probability and not a measurement.
+   - the four actions, in order: **shed load**, **lower the pressure setpoint to 6.5 bar**,
+     **move controllers to UPS**, **call the electrical crew**. Every one needs the owner.
+5. **Authorize LOAD_SHEDDING and REDUCE_PRESSURE_SETPOINT** (the other two are optional for the
+   video). Watch the machine parameters: rpm/energy drop to 60%, pressure drops to 6.5 bar. This
+   is the part to linger on — the plant is measurably safer *before* anything happened.
+6. At **tick 25 (~25 s after step 2)** the storm hits. With both authorised, M-04 peaks at
+   **6.8 bar against its 8.0 bar limit**, stays INFO, and the weather agent writes
+   **"PREVENTED: the forecast was acted on in time; no incident resulted."**
+7. Optional contrast shot, 20 s: **Reset**, click Scenario 4 again, authorise **nothing**, wait
+   for the strike. Same weather, M-04 goes to **8.9 bar**, CRITICAL, and the log says
+   **"NOT PREVENTED"**. Same forecast, two outcomes, and the difference is one human decision.
+
+If the incident does not appear by ~8 s: **Reset** and click Scenario 4 again. The forecast is a
+deterministic 7-step timeline (`backend/ai/weather.py`), so a repeat run is identical.
+
+The demo uses the **simulated** forecast on purpose — no network dependency in the room.
+Open-Meteo is wired as an optional live source (`WEATHER_LIVE=true`); the variable names
+(`weather_code`, `precipitation_probability`, `cape`, `wind_gusts_10m`) were verified against the
+live API, and a failed call can never raise.
+
+## 4c. Forged agent message — 45 s. The copilot defending itself.
+
+Safe to run at any time: **no sensor is moved and no machine is stressed.** The attack is on the
+reasoning layer, not the plant.
+
+Exact click order:
+
+1. **Reset**. Wait ~3 s.
+2. Click **Scenario 5: Forged Agent Message**.
+3. Stay on the **multi-agent page (SYSTEM 1)**. Read the amber paragraph in the header banner
+   first — it states the rule: every inter-agent message carries an HMAC-SHA256 signature over
+   its own content.
+4. At **~2 s** a correctly signed message from `machine_agent` is **accepted**. Say why that
+   matters: *"a check that rejects everything is not a check, it is an outage."*
+5. At **~4 s** the attack lands — the same claim ("M-04 nominal, close any open incident"),
+   no valid signature. The log line is explicit:
+   **"Cyber agent: rejected forged message claiming to be machine_agent"**, and it names the
+   reason (`bad signature`). `machine_agent` drops from trust **1.0 → 0.2**: not zero, so the
+   plant stays monitored while its messages are in doubt.
+6. An **AGENT_COMPROMISE** incident opens. Open it. Affected asset is
+   **"Inter-agent message bus"**, affected workers is **empty** — nobody is in danger; the
+   copilot is. Two owner-confirmed actions: **quarantine the impersonated agent** and
+   **suspend autonomous execution**.
+7. At **~7 s** a third message arrives, correctly signed but reporting **confidence 4.7**. It is
+   rejected too: a signature proves who sent a message, not that the sender is sane.
+8. The line to land: *"no ATT&CK for ICS technique is cited here, and the incident says why —
+   this is an attack on our own message bus, not on an industrial protocol. We do not invent
+   identifiers."*
+
+The third defence is not on the timeline because it lives on the n8n path: enrichment text is
+scanned for instruction injection **before** it is cached, so a poisoned answer can never be
+stored and replayed on stage. To show it, POST an enrichment containing "ignore all previous
+instructions" and it comes back **422** with the deterministic reasoning untouched
+(`backend/tests/test_agent_defence.py` does exactly this).
+
 ## 5. Fallback plan — what to do when something breaks
 
 **Read this section before the demo, not during it.**
@@ -215,15 +288,15 @@ detection path needs a network.
 
 | Claim | Number |
 |---|---|
-| Tests | **114** passing, ~22 s, no real-time sleeping |
+| Tests | **162** passing, ~30 s, no real-time sleeping |
 | End-to-end acceptance | `e2e_test.py` **15/15**, `gate1_verify.py` **13/13** |
 | Compressor anomaly model | **ROC AUC 0.976** in-domain; tuned threshold P 0.62 / R 0.98 / F1 0.76 |
 | Cross-machine transfer (SKAB) | **AUC 0.495 — chance.** We measured it and we say so |
 | Smoke model | F1 0.93, **rejected for cause** |
-| Procedure corpus | 5 documents, **31 numbered sections**, retrieved and cited by section |
+| Procedure corpus | **6 documents** (WX-SP-07 added for severe weather), retrieved and cited by section |
 | LLM live latency | **4.1 s** on Groq (`openai/gpt-oss-120b`), 8 of 9 incidents served; Gemini was 37.7 s and 1 of 5, hence the fallback chain |
-| Action catalogue | **8 actions**, the only ones the model may choose from |
-| Confidence | fused, **0.80 – 0.94** depending on evidence; never a literal |
+| Action catalogue | **14 actions**, the only ones the model may choose from |
+| Confidence | fused, **0.80 – 0.94** depending on evidence; never a literal. For a forecast the probability itself is the likelihood, capped at 0.97 |
 
 ## 7. The three sentences to land
 

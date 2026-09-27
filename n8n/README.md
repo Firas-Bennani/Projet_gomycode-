@@ -117,7 +117,14 @@ So, **every time n8n restarts — and any time this laptop has been short of RAM
 empty until you re-run the ingestion.** It takes about 15 seconds:
 
 1. <http://localhost:5678> → workflow **"RAG ingestion (procedures → Simple Vector Store)"**
-2. click **Execute workflow** once, confirm it goes green and reports ~31 items.
+2. click **Execute workflow** once, confirm it goes green (~31 items before WX-SP-07, more after it).
+
+**A corpus document added after the last ingestion is in the same position.** WX-SP-07
+(`Severe-Weather-Procedure.md`, added for the storm_forecast scenario) was written after the one
+ingestion run of Step 5, so the Simple Vector Store does not contain it until you execute the
+ingestion workflow again. Re-run it once before recording if you want semantic retrieval to cover
+severe weather. This is not a blocker: the warmed SEVERE_WEATHER_RISK answer cites WX-SP-07
+sections 1, 2 and 6, retrieved live through the keyword tool below with no ingestion at all.
 
 Nothing breaks if you forget: the AI Agent also has `procedure_search`, an HTTP tool pointed at
 the backend's keyword RAG, which needs no ingestion and cannot go stale. You would simply lose
