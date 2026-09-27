@@ -1,17 +1,37 @@
 import asyncio
-from typing import Dict, Any, List
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 import uuid
 import logging
+
+from ai import clock
+from ai.observation_window import ObservationWindow
 from ai.agents.temperature_agent import TemperatureAgent
 from ai.agents.machine_agent import MachineAgent
 from ai.agents.worker_agent import WorkerAgent
 from ai.agents.cyber_agent import CybersecurityAgent
-from ai.agents.recommendation_agent import RecommendationAgent
+from ai.agents.recommendation_agent import RecommendationAgent, SEVERITY_RANK
 from app.services.state_store import state
-from app.models.schemas import Incident, Action, ActionStatus, RiskAssessment, Severity
+from app.models.schemas import Incident, Action, ActionStatus, EvidenceItem, RiskAssessment, Severity
 
 logger = logging.getLogger("orchestrator")
+
+#: How long observations stay correlatable (seconds).
+CORRELATION_WINDOW_S = 30.0
+
+#: After an incident is resolved, ignore the same hazard in the same zone for this long,
+#: so a cooling-down machine does not immediately re-open the incident the owner just closed.
+RESOLVED_COOLDOWN_S = 60.0
+
+#: Do not repeat the same "waiting for corroboration" note more often than this.
+GAP_LOG_INTERVAL_S = 10.0
+
+#: For this long after a hazard was resolved in a zone, a new incident of the same type is
+#: only opened if the readings are actually climbing again. Found at GATE 1: the remedy brings
+#: the machine down, but any lingering high reading re-opened the incident the operator had
+#: just closed. Only applies to hazards with a continuous measurement.
+REOPEN_REQUIRE_RISING_S = 300.0
+REOPEN_RISING_TYPES = ("MACHINE_OVERHEATING", "INDUSTRIAL_FIRE")
+
 
 class AgentOrchestrator:
     def __init__(self):
@@ -20,14 +40,66 @@ class AgentOrchestrator:
         self.worker_agent = WorkerAgent()
         self.cyber_agent = CybersecurityAgent()
         self.rec_agent = RecommendationAgent()
+        # Kept for backwards compatibility with anything reading it.
         self.recent_observations: List[Dict[str, Any]] = []
+        #: Per-zone sliding window of agent observations — the correlation fix.
+        self.window = ObservationWindow(ttl_s=CORRELATION_WINDOW_S)
+        self._last_gap_log: Dict[str, Any] = {}
+        self._last_scenario: Optional[str] = None
+
+    def reset_correlation(self, reason: str):
+        """Forget all correlation memory.
+
+        Without this, a demo reset or a scenario switch leaves up to 30 s of observations in
+        the window and the agents' history buffers. Running `fire` right after
+        `machine_overheating` then correlated fresh smoke with the *previous* scenario's
+        8.9 bar pressure reading and opened a second, bogus incident.
+        """
+        self.window.clear()
+        self.temp_agent.history.clear()
+        self.machine_agent.history.clear()
+        self._last_gap_log.clear()
+        self.recent_observations = []
+        from ai.n8n_client import clear_resume_urls
+        clear_resume_urls()
+        self._log_agent_step(
+            "recommendation_agent",
+            ["SYSTEM"],
+            f"Correlation memory cleared ({reason}).",
+            "RESET: agents resume from a clean baseline.",
+        )
+
+    def _detect_scenario_change(self):
+        """Clear correlation memory when the demo scenario changes.
+
+        Read-only defence so the jury can jump between scenario buttons without a reset.
+        The clean fix is for the simulator to publish a SCENARIO_CHANGED event — proposed to
+        Engineer 2 in docs/ai/PROPOSED_CHANGES_FOR_TEAM.md.
+        """
+        try:
+            from iot.simulator import simulator
+            current = simulator.scenario
+        except Exception:
+            return
+        if self._last_scenario is None:
+            self._last_scenario = current
+            return
+        if current != self._last_scenario:
+            previous, self._last_scenario = self._last_scenario, current
+            self.reset_correlation(f"scenario {previous} -> {current}")
 
     async def handle_event(self, event: Dict[str, Any]):
         event_type = event.get("event_type", "")
-        # Forward event to specialized agents
-        observations = []
+        event_zone = event.get("zone") or "GLOBAL"
+        observations: List[Dict[str, Any]] = []
 
-        # 1. Temperature agent
+        if event_type == "FACTORY_RESET":
+            self.reset_correlation("factory reset")
+            return
+
+        self._detect_scenario_change()
+
+        # 1. Temperature / environmental agent
         t_obs = await self.temp_agent.process_event(event)
         if t_obs:
             observations.append(t_obs)
@@ -45,19 +117,33 @@ class AgentOrchestrator:
             observations.append(c_obs)
             self._log_agent_step(self.cyber_agent.agent_id, [event_type], c_obs["observation"], c_obs["decision"])
 
-        # 4. If an anomaly was detected in any domain, consult Worker Agent
-        if observations:
-            w_obs = await self.worker_agent.process_event(event)
-            if w_obs:
-                observations.append(w_obs)
-                self._log_agent_step(self.worker_agent.agent_id, ["HAZARD_ALERT"], w_obs["observation"], w_obs["decision"])
+        # 4. Worker agent: exposure assessment for whatever the other agents saw
+        w_obs = await self.worker_agent.process_event(event)
+        if w_obs:
+            observations.append(w_obs)
+            self._log_agent_step(self.worker_agent.agent_id, ["HAZARD_ALERT"], w_obs["observation"], w_obs["decision"])
 
-            # 5. Strategic Recommendation Agent synthesizes incident
-            incident_data = self.rec_agent.synthesize_incident(observations)
+        self._refresh_agent_cards()
+
+        if not observations:
+            return
+
+        # 5. Correlate: remember these observations, then reason over everything recent in
+        #    this zone instead of only over the event we happen to be handling.
+        zones = {self.window.add(obs, zone=event_zone) for obs in observations}
+        self.recent_observations = observations
+
+        for zone in zones:
+            snapshot = self.window.snapshot(zone)
+            incident_data = self.rec_agent.synthesize_incident(snapshot, zone=zone)
             if incident_data:
-                await self._create_incident_and_actions(incident_data, observations)
+                await self._create_or_escalate(incident_data, snapshot)
+            elif self.rec_agent.last_gap_reason:
+                self._log_gap(zone, self.rec_agent.last_gap_reason, snapshot)
 
-        # Update state store agent cards
+    # ------------------------------------------------------------------ bookkeeping
+
+    def _refresh_agent_cards(self):
         state.agents["temperature_agent"] = self.temp_agent
         state.agents["machine_agent"] = self.machine_agent
         state.agents["worker_agent"] = self.worker_agent
@@ -66,7 +152,7 @@ class AgentOrchestrator:
 
     def _log_agent_step(self, agent_id: str, inputs: List[str], reasoning: str, decision: str, actions: List[str] = None):
         entry = {
-            "timestamp": datetime.utcnow(),
+            "timestamp": clock.now(),
             "agent_id": agent_id,
             "input_from": inputs,
             "reasoning": reasoning,
@@ -77,15 +163,181 @@ class AgentOrchestrator:
         if len(state.agent_logs) > 100:
             state.agent_logs.pop()
 
+    def _log_gap(self, zone: str, reason: str, snapshot: List[Dict[str, Any]]):
+        """Record that the system deliberately declined to name a hazard. Rate limited."""
+        last = self._last_gap_log.get(zone)
+        now = clock.now()
+        if last and last[0] == reason and (now - last[1]).total_seconds() < GAP_LOG_INTERVAL_S:
+            return
+        self._last_gap_log[zone] = (reason, now)
+        self._log_agent_step(
+            "recommendation_agent",
+            [o.get("agent_id", "unknown") for o in snapshot],
+            reason,
+            "HOLD: no incident declared — required corroborating evidence is missing.",
+        )
+
+    # ------------------------------------------------------------------ incident lifecycle
+
+    def _find_open_incident(self, incident_type: str, zone: str) -> Optional[Incident]:
+        for existing in state.incidents.values():
+            if existing.type == incident_type and existing.zone == zone and existing.status in ("ACTIVE", "RESOLVING"):
+                return existing
+        return None
+
+    def _cooldown_remaining(self, incident_type: str, zone: str) -> float:
+        """Seconds left of the post-resolution cooldown for this hazard in this zone."""
+        now = clock.now()
+        remaining = 0.0
+        for existing in state.incidents.values():
+            if existing.type != incident_type or existing.zone != zone:
+                continue
+            if existing.status not in ("RESOLVED", "DISMISSED") or not existing.resolved_at:
+                continue
+            elapsed = (now - existing.resolved_at).total_seconds()
+            if 0.0 <= elapsed < RESOLVED_COOLDOWN_S:
+                remaining = max(remaining, RESOLVED_COOLDOWN_S - elapsed)
+        return remaining
+
+    def _seconds_since_resolved(self, incident_type: str, zone: str) -> Optional[float]:
+        """Age of the most recent resolution of this hazard in this zone, or None."""
+        now = clock.now()
+        newest = None
+        for existing in state.incidents.values():
+            if existing.type != incident_type or existing.zone != zone or not existing.resolved_at:
+                continue
+            age = (now - existing.resolved_at).total_seconds()
+            if age < 0:
+                continue
+            newest = age if newest is None else min(newest, age)
+        return newest
+
+    @staticmethod
+    def _evidence_rising(observations: List[Dict[str, Any]]) -> tuple:
+        """Is any measured source still climbing? Returns (rising, human-readable detail)."""
+        for obs in observations:
+            if obs.get("agent_id") == "machine_agent" and obs.get("pressure_slope_known"):
+                slope = obs.get("pressure_slope", 0.0)
+                if slope > 0.05:
+                    return True, f"{obs.get('machine_id')} pressure is rising {slope:+.2f} bar/min"
+            if obs.get("agent_id") == "temperature_agent" and obs.get("rate_known"):
+                rate = obs.get("rate_of_change", 0.0)
+                if rate > 0.2:
+                    return True, f"{obs.get('sensor_id')} is rising {rate:+.1f} {obs.get('unit', '')}/min"
+        return False, "no source is trending upward, so the hazard is receding rather than returning"
+
+    async def _create_or_escalate(self, incident_data: Dict[str, Any], observations: List[Dict[str, Any]]):
+        incident_type = incident_data["type"]
+        zone = incident_data["zone"]
+
+        open_incident = self._find_open_incident(incident_type, zone)
+        if open_incident is not None:
+            await self._escalate(open_incident, incident_data, observations)
+            return
+
+        # Values must be climbing again before a just-closed hazard may re-open.
+        since_resolved = self._seconds_since_resolved(incident_type, zone)
+        if (incident_type in REOPEN_RISING_TYPES and since_resolved is not None
+                and since_resolved < REOPEN_REQUIRE_RISING_S):
+            rising, detail = self._evidence_rising(observations)
+            if not rising:
+                self._log_gap(
+                    zone,
+                    f"{incident_type} thresholds are still exceeded in {zone} "
+                    f"{since_resolved:.0f}s after the previous incident was resolved, but {detail}.",
+                    observations,
+                )
+                return
+
+        cooldown = self._cooldown_remaining(incident_type, zone)
+        if cooldown > 0:
+            self._log_agent_step(
+                "recommendation_agent",
+                [o.get("agent_id", "unknown") for o in observations],
+                f"{incident_type} conditions seen again in {zone} {RESOLVED_COOLDOWN_S - cooldown:.0f}s after the "
+                f"previous incident was closed.",
+                f"SUPPRESSED: within the {RESOLVED_COOLDOWN_S:.0f}s post-resolution cooldown "
+                f"({cooldown:.0f}s remaining).",
+            )
+            return
+
+        await self._create_incident_and_actions(incident_data, observations)
+
+    async def _escalate(self, incident: Incident, incident_data: Dict[str, Any], observations: List[Dict[str, Any]]):
+        """Update an already-open incident rather than opening a duplicate.
+
+        A hazard that gets worse should raise the severity of the incident the owner is
+        already looking at — not create a second card for the same physical event.
+        """
+        from app.services.event_bus import event_bus
+
+        new_severity = incident_data["severity"]
+        old_rank = SEVERITY_RANK.get(str(incident.severity.value), 0)
+        new_rank = SEVERITY_RANK.get(str(getattr(new_severity, "value", new_severity)), 0)
+        confidence_gain = incident_data["confidence"] - incident.confidence
+
+        if new_rank <= old_rank and confidence_gain < 0.05:
+            return  # nothing materially new
+
+        previous = incident.severity.value
+        incident.severity = new_severity if new_rank > old_rank else incident.severity
+        incident.confidence = max(incident.confidence, incident_data["confidence"])
+        # pydantic does not validate on assignment, so coerce the dicts ourselves
+        incident.evidence = [EvidenceItem(**e) if isinstance(e, dict) else e
+                             for e in incident_data["evidence"]]
+        # Do NOT clobber an explanation n8n (and from Step 5, the LLM) already wrote: the owner
+        # may be reading it. Record the escalation as a trailing line instead.
+        from ai.n8n_client import was_enriched
+        if was_enriched(incident.id):
+            incident.ai_reasoning = self._with_escalation_note(
+                incident.ai_reasoning, previous, incident.severity.value, incident.confidence
+            )
+        else:
+            incident.ai_reasoning = incident_data["ai_reasoning"]
+        incident.affected_workers = incident_data["affected_workers"]
+
+        if zone_state := state.zones.get(incident.zone):
+            zone_state.risk_level = incident.severity
+
+        for risk in state.risks.values():
+            if risk.type == incident.type and risk.zone == incident.zone and risk.status == "ACTIVE":
+                risk.severity = incident.severity
+                risk.probability = incident.confidence
+                risk.contributing_factors = [e.detail for e in incident.evidence]
+
+        self._log_agent_step(
+            "recommendation_agent",
+            [o.get("agent_id", "unknown") for o in observations],
+            f"{incident.id} re-assessed: severity {previous} -> {incident.severity.value}, "
+            f"confidence {incident.confidence:.2f} from {len(incident.evidence)} evidence items.",
+            f"ESCALATED existing incident {incident.id} instead of opening a duplicate.",
+        )
+
+        await event_bus.publish(
+            event_type="INCIDENT_UPDATED",
+            source="ai:orchestrator",
+            data=incident.model_dump(mode="json"),
+            zone=incident.zone,
+            severity=incident.severity.value,
+            correlation_id=incident.id
+        )
+
+    ESCALATION_MARKER = "\n— re-assessed since enrichment:"
+
+    @classmethod
+    def _with_escalation_note(cls, reasoning: str, previous: str, current: str, confidence: float) -> str:
+        """Append (or refresh) a single escalation line under an enriched explanation."""
+        base = reasoning.split(cls.ESCALATION_MARKER)[0].rstrip()
+        return (
+            f"{base}{cls.ESCALATION_MARKER} severity {previous} -> {current}, "
+            f"confidence now {confidence:.2f} from refreshed sensor evidence "
+            f"(the explanation above is unchanged)."
+        )
+
     async def _create_incident_and_actions(self, incident_data: Dict[str, Any], observations: List[Dict[str, Any]]):
         from app.services.event_bus import event_bus
 
         inc_id = incident_data["id"]
-        # Check if an active incident of same type already exists
-        for existing in state.incidents.values():
-            if existing.status == "ACTIVE" and existing.type == incident_data["type"] and existing.zone == incident_data["zone"]:
-                return  # already active
-
         incident = Incident(**incident_data)
         state.incidents[inc_id] = incident
 
@@ -106,13 +358,15 @@ class AgentOrchestrator:
             severity=incident.severity,
             probability=incident.confidence,
             impact=f"Potential critical impact to {', '.join(incident.affected_assets)}",
-            contributing_factors=[e["detail"] for e in incident_data["evidence"]],
-            assessed_at=datetime.utcnow(),
+            contributing_factors=[e.detail for e in incident.evidence],
+            assessed_at=clock.now(),
             status="ACTIVE"
         )
         state.risks[risk_id] = risk
 
         # Create actionable items in Command Center
+        created_actions: List[Action] = []
+        auto_execute: List[str] = []
         for rec in incident.recommended_actions:
             action_id = f"ACT-{uuid.uuid4().hex[:4].upper()}"
             act = Action(
@@ -123,15 +377,13 @@ class AgentOrchestrator:
                 reason=rec.reason,
                 risk_level=rec.risk_level,
                 status=ActionStatus.AWAITING_APPROVAL if rec.requires_confirmation else ActionStatus.AUTHORIZED,
-                created_at=datetime.utcnow(),
+                created_at=clock.now(),
                 created_by="recommendation_agent"
             )
             state.actions[action_id] = act
-
+            created_actions.append(act)
             if not rec.requires_confirmation:
-                # Automatic execution for LOW risk
-                from app.services.command_engine import command_engine
-                asyncio.create_task(command_engine.execute_action(action_id))
+                auto_execute.append(action_id)   # started below, after the broadcasts
 
         self._log_agent_step(
             "recommendation_agent",
@@ -141,7 +393,14 @@ class AgentOrchestrator:
             [r.action for r in incident.recommended_actions]
         )
 
-        # Broadcast incident to Frontend
+        # Hand the incident to n8n for LLM enrichment. Fire-and-forget by design: detection
+        # is already complete and the template recommendations above stand on their own.
+        from ai.n8n_client import notify_incident_background
+        notify_incident_background(incident, observations)
+
+        # Broadcast the incident first, then each action it created. Announcing the actions is
+        # what was missing at GATE 1: the Command Center only learned about pending actions on
+        # a page refresh, so the AUTHORIZE button did not appear until the operator pressed F5.
         await event_bus.publish(
             event_type="INCIDENT_CREATED",
             source="ai:orchestrator",
@@ -150,5 +409,16 @@ class AgentOrchestrator:
             severity=incident.severity.value,
             correlation_id=inc_id
         )
+
+        from ai.action_events import publish_actions
+        await publish_actions(created_actions, source="ai:orchestrator")
+
+        # Only now start the LOW-risk automatic actions, so their IN_PROGRESS/COMPLETED events
+        # can never arrive before the action itself has been announced.
+        if auto_execute:
+            from app.services.command_engine import command_engine
+            for action_id in auto_execute:
+                asyncio.create_task(command_engine.execute_action(action_id))
+
 
 orchestrator = AgentOrchestrator()
