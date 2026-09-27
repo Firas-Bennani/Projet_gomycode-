@@ -16,8 +16,10 @@ failed step is reported and skipped while the video keeps rolling.
 
 Credentials are read from the environment and never written to the repo:
 
-    N8N_EMAIL / N8N_PASSWORD      the n8n owner login (the UI needs a session; the API key
-                                  cannot open the executions view)
+    N8N_EMAIL / N8N_PASSWORD      the n8n owner login (the UI needs a browser session; the
+                                  public API key cannot open the executions view). Not needed
+                                  with --use-chrome-profile, which reuses the session already in
+                                  your Chrome profile and asks for no password at all.
     N8N_API_KEY                   read from .env if unset, as the other n8n scripts do
     COPILOT_USER / COPILOT_PASSWORD   the backend owner, via n8n/_auth.py
 
@@ -26,6 +28,7 @@ Usage:
     python scripts/video/record_n8n.py --execution-id 123   # skip setup, record that execution
     python scripts/video/record_n8n.py --setup-only
     python scripts/video/record_n8n.py --no-caption
+    python scripts/video/record_n8n.py --execution-id 114 --use-chrome-profile   # no password
 """
 
 import argparse
@@ -189,13 +192,25 @@ def setup_execution(workflow_id: str) -> str:
 
 # --------------------------------------------------------------------- phase 2: the recording
 
-def record(workflow_id: str, execution_id: str) -> pathlib.Path:
+def chrome_profile_dir() -> str:
+    local = os.getenv("LOCALAPPDATA") or str(pathlib.Path.home() / "AppData" / "Local")
+    path = pathlib.Path(local) / "Google" / "Chrome" / "User Data"
+    if not path.is_dir():
+        sys.exit(f"no Chrome profile at {path}")
+    return str(path)
+
+
+def record(workflow_id: str, execution_id: str, use_chrome_profile: bool = False) -> pathlib.Path:
     from playwright.sync_api import sync_playwright
 
     email = os.getenv("N8N_EMAIL", "").strip()
     password = os.getenv("N8N_PASSWORD", "").strip()
-    if not (email and password):
-        sys.exit("set N8N_EMAIL and N8N_PASSWORD in the environment (never in git)")
+    # Two ways in. Reusing the Chrome profile you are already signed in with needs no password at
+    # all, which is the better option when the only alternative is typing one into a shell that
+    # keeps history. It requires Chrome to be fully closed, because Chrome locks its profile.
+    if not (email and password) and not use_chrome_profile:
+        sys.exit("either set N8N_EMAIL and N8N_PASSWORD, or pass --use-chrome-profile "
+                 "(with Chrome closed) to reuse the session you already have")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     before = set(OUT_DIR.glob("*.webm"))
@@ -208,32 +223,41 @@ def record(workflow_id: str, execution_id: str) -> pathlib.Path:
         except Exception as exc:  # noqa: BLE001
             log(f"  SKIPPED {description}: {type(exc).__name__}: {str(exc)[:120]}")
 
+    video = {"record_video_dir": str(OUT_DIR),
+             "record_video_size": {"width": 1920, "height": 1080}}
+    shape = {"viewport": {"width": 1920, "height": 1080}, "device_scale_factor": 1.25}
+
     with sync_playwright() as p:
         launch = {"headless": False, "slow_mo": 400, "args": ["--start-maximized"]}
-        try:
-            browser = p.chromium.launch(**launch)
-            log("launched bundled chromium")
-        except Exception:
-            browser = p.chromium.launch(channel="chrome", **launch)
-            log("launched installed Chrome")
+        browser = None
 
-        context = browser.new_context(
-            viewport={"width": 1920, "height": 1080},
-            device_scale_factor=1.25,
-            record_video_dir=str(OUT_DIR),
-            record_video_size={"width": 1920, "height": 1080},
-        )
-        page = context.new_page()
+        if use_chrome_profile:
+            log("reusing your Chrome profile — Chrome must be closed or this will fail")
+            context = p.chromium.launch_persistent_context(
+                chrome_profile_dir(), channel="chrome", **launch, **shape, **video)
+        else:
+            try:
+                browser = p.chromium.launch(**launch)
+                log("launched bundled chromium")
+            except Exception:
+                browser = p.chromium.launch(channel="chrome", **launch)
+                log("launched installed Chrome")
+            context = browser.new_context(**shape, **video)
+
+        page = context.pages[0] if context.pages else context.new_page()
 
         try:
-            log("signing in to n8n")
-            page.goto(f"{N8N}/signin", wait_until="domcontentloaded")
-            step("fill the login form", lambda: (
-                page.fill("input[type='email'], input[name='email']", email),
-                page.fill("input[type='password'], input[name='password']", password),
-                page.keyboard.press("Enter"),
-                page.wait_for_load_state("networkidle", timeout=30000),
-            ))
+            if use_chrome_profile:
+                log("skipping the login form: the profile should already hold a session")
+            else:
+                log("signing in to n8n")
+                page.goto(f"{N8N}/signin", wait_until="domcontentloaded")
+                step("fill the login form", lambda: (
+                    page.fill("input[type='email'], input[name='email']", email),
+                    page.fill("input[type='password'], input[name='password']", password),
+                    page.keyboard.press("Enter"),
+                    page.wait_for_load_state("networkidle", timeout=30000),
+                ))
 
             url = f"{N8N}/workflow/{workflow_id}/executions/{execution_id}"
             log(f"opening {url}")
@@ -276,7 +300,8 @@ def record(workflow_id: str, execution_id: str) -> pathlib.Path:
             step("trail the mouse to POST status RESOLVING", trail)
         finally:
             context.close()   # flushes the video file
-            browser.close()
+            if browser:
+                browser.close()
 
     produced = sorted(set(OUT_DIR.glob("*.webm")) - before,
                       key=lambda p: p.stat().st_mtime)
@@ -337,6 +362,9 @@ def main() -> int:
     parser.add_argument("--workflow-id", help="override the workflow id")
     parser.add_argument("--setup-only", action="store_true")
     parser.add_argument("--no-caption", action="store_true")
+    parser.add_argument("--use-chrome-profile", action="store_true",
+                        help="reuse the Chrome profile already signed in to n8n (Chrome must be "
+                             "closed); no password needed")
     args = parser.parse_args()
 
     workflow_id = args.workflow_id
@@ -351,7 +379,7 @@ def main() -> int:
         log(f"execution id: {execution_id}")
         return 0
 
-    raw = record(workflow_id, execution_id)
+    raw = record(workflow_id, execution_id, use_chrome_profile=args.use_chrome_profile)
     log(f"raw video: {raw.name} ({duration_of(raw)})")
     convert(raw, caption=not args.no_caption)
     log(f"done: {FINAL_MP4}  duration {duration_of(FINAL_MP4)}")
