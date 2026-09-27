@@ -8,6 +8,7 @@ from ai.observation_window import ObservationWindow
 from ai.agents.temperature_agent import TemperatureAgent
 from ai.agents.machine_agent import MachineAgent
 from ai.agents.worker_agent import WorkerAgent
+from ai import agent_bus_auth
 from ai.agents.cyber_agent import CybersecurityAgent
 from ai.agents.weather_agent import WeatherAgent
 from ai.agents.recommendation_agent import RecommendationAgent, SEVERITY_RANK
@@ -133,6 +134,17 @@ class AgentOrchestrator:
             self._log_agent_step(self.worker_agent.agent_id, ["HAZARD_ALERT"], w_obs["observation"], w_obs["decision"])
 
         self._refresh_agent_cards()
+
+        # 4b. Authenticate what the agents just said, before any of it becomes evidence.
+        #     Our own agents sign as they are collected; anything that arrived on the bus from
+        #     somewhere else has no valid tag and is dropped here (ai/agent_bus_auth.py).
+        for observation in observations:
+            if not observation.get("agent_attack"):
+                agent_bus_auth.sign(observation)
+        for raised in self.cyber_agent.screen_observations(observations, zone=event_zone):
+            observations.append(raised)
+            self._log_agent_step(self.cyber_agent.agent_id, [event_type],
+                                 raised["observation"], raised["decision"])
 
         if not observations:
             return

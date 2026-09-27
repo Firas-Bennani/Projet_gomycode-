@@ -19,6 +19,7 @@ FIRE = "INDUSTRIAL_FIRE"
 OVERHEAT = "MACHINE_OVERHEATING"
 CYBER = "CYBER_INTRUSION"
 WEATHER = "SEVERE_WEATHER_RISK"
+AGENT = "AGENT_COMPROMISE"
 
 # What the action's target is derived from.
 TARGET_MACHINE = "machine"
@@ -200,6 +201,34 @@ CATALOG: Dict[str, CatalogEntry] = {
             target_kind=TARGET_ZONE,
             reason="Shift reinforcement so a fault during the storm is handled in minutes.",
             hazards=[WEATHER],
+        ),
+        # ---- the copilot defending itself -------------------------------------------
+        CatalogEntry(
+            id="quarantine_agent",
+            label="Quarantine the impersonated agent on the internal message bus",
+            action_type="QUARANTINE_AGENT",
+            risk=RiskLevel.MEDIUM,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_FIXED,
+            target_pattern="AGENT-BUS",
+            reason="Stop accepting messages that claim to come from the impersonated agent until "
+                   "the bus is verified, so forged evidence cannot reach the fusion.",
+            hazards=[AGENT],
+            resolves_hazard=True,
+        ),
+        CatalogEntry(
+            id="require_human_authorisation",
+            label="Suspend autonomous execution until the message bus is verified",
+            action_type="REQUIRE_HUMAN_AUTHORISATION",
+            risk=RiskLevel.LOW,
+            auto=False,
+            requires_confirmation=True,
+            target_kind=TARGET_FIXED,
+            target_pattern="COPILOT-AUTONOMY",
+            reason="While the reasoning layer's inputs are in doubt, no action should execute "
+                   "without a person approving it.",
+            hazards=[AGENT],
         ),
         # ---- cyber -----------------------------------------------------------------
         CatalogEntry(

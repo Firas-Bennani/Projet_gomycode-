@@ -15,7 +15,7 @@ multi-agent page.
 
 from typing import Any, Dict, List, Optional
 
-from ai import clock, mitre_ics, risk_engine
+from ai import agent_bus_auth, clock, mitre_ics, risk_engine
 from ai.agents.base_agent import BaseAgent
 
 #: Failed authentications from one source inside the window that constitute a brute-force
@@ -54,6 +54,8 @@ class CybersecurityAgent(BaseAgent):
         self.auth_failures: Dict[str, List[Any]] = {}
         #: Sensors this agent has already distrusted, so it does not repeat itself every tick.
         self.distrusted_sensors: set = set()
+        #: Agents whose messages failed authentication or whose behaviour went out of range.
+        self.distrusted_agents: set = set()
 
     # ------------------------------------------------------------------ inventory
 
@@ -170,8 +172,121 @@ class CybersecurityAgent(BaseAgent):
 
     # ------------------------------------------------------------------ main entry
 
+
+    # ------------------------------------------------------------------ defending the agents
+    # Everything above defends the plant. The methods below defend the copilot itself: the
+    # agents' own messages, their behaviour, and the LLM text that comes back through n8n.
+    # A safety system that can be lied to by whatever can publish an event is not a safety
+    # system, so these checks run before the recommendation agent is allowed to reason.
+
+    def inspect_agent_message(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Authenticate one inter-agent message. Returns an AGENT_COMPROMISE observation if it
+        fails, ``None`` if it passes (a valid message needs no announcement)."""
+        message = dict(event.get("data") or {})
+        claimed = str(message.get("agent_id") or "(missing)")
+
+        ok, reason = agent_bus_auth.verify(message)
+        fault = None if not ok else agent_bus_auth.behaviour_fault(message)
+        if ok and not fault:
+            self.update_status(
+                task="Authenticating inter-agent messages",
+                observation=f"Message from {claimed} carries a valid signature and a normal "
+                            f"reporting rate. Accepted.",
+                decision=f"ACCEPT: {claimed} verified.",
+            )
+            return None
+
+        why = reason if not ok else fault
+        forged = not ok
+        return self._agent_compromise(claimed, why, forged=forged,
+                                      zone=event.get("zone") or "GLOBAL")
+
+    def screen_observations(self, observations: List[Dict[str, Any]],
+                            zone: str = "GLOBAL") -> List[Dict[str, Any]]:
+        """Drop any observation that is not authentic before it reaches the fusion.
+
+        Returns the AGENT_COMPROMISE observations raised while screening, and removes the
+        rejected entries from ``observations`` in place.
+        """
+        raised: List[Dict[str, Any]] = []
+        for observation in list(observations):
+            if observation.get("agent_id") == self.agent_id and observation.get("agent_attack"):
+                continue
+            ok, reason = agent_bus_auth.verify(observation)
+            if ok:
+                continue
+            observations.remove(observation)
+            raised.append(self._agent_compromise(
+                str(observation.get("agent_id") or "(missing)"), reason, forged=True, zone=zone))
+        return raised
+
+    def _agent_compromise(self, claimed: str, why: str, forged: bool, zone: str) -> Dict[str, Any]:
+        """Reject the message, distrust the agent it claims to be, and say so out loud."""
+        headline = (f"Cyber agent: rejected forged message claiming to be {claimed}"
+                    if forged else
+                    f"Cyber agent: {claimed} is behaving anomalously")
+        detail = f"{headline} - {why}."
+
+        if claimed in agent_bus_auth.KNOWN_AGENTS:
+            risk_engine.set_trust(claimed, agent_bus_auth.COMPROMISED_TRUST,
+                                  f"agent integrity: {why}")
+            self.distrusted_agents.add(claimed)
+            detail += (f" {claimed} is now weighted {agent_bus_auth.COMPROMISED_TRUST:.1f} in the "
+                       f"fusion: its readings still count, but they can no longer carry an "
+                       f"incident on their own.")
+        else:
+            detail += (f" {claimed} is not one of this system's agents, so nothing is "
+                       f"down-weighted - the message is simply discarded.")
+
+        observation = (
+            detail
+            + " The message was authenticated with an HMAC-SHA256 tag over its own content"
+              " (agent_id, zone, severity, observation, decision), so a sender without the shared"
+              " secret cannot produce a valid one."
+            # Honest about attribution: this attack is on the copilot's own message bus, not on a
+            # control protocol, so no ATT&CK for ICS technique is cited for it.
+            + " No ATT&CK for ICS technique is cited: this is an attack on the copilot's internal"
+              " message bus, not on an industrial protocol."
+        )
+        decision = ("QUARANTINE the impersonated agent and require human authorisation until the "
+                    "bus is verified")
+
+        self.update_status(task="Authenticating inter-agent messages", observation=observation,
+                           decision=decision, status="WARNING")
+
+        return {
+            "agent_id": self.agent_id,
+            "anomaly": True,
+            "severity": "HIGH",
+            "zone": zone,
+            "observation": observation,
+            "decision": decision,
+            # --- what makes this an AGENT_COMPROMISE rather than a CYBER_INTRUSION ---
+            "agent_attack": True,
+            "impersonated_agent": claimed,
+            "rejection_reason": why,
+            "forged": forged,
+        }
+
+    def screen_llm_text(self, text: str, where: str = "n8n enrichment") -> Optional[str]:
+        """Scan untrusted LLM narrative for instruction injection. Returns the reason to reject."""
+        reason = agent_bus_auth.scan_for_injection(text)
+        if not reason:
+            return None
+        self.update_status(
+            task="Screening the LLM channel",
+            observation=(f"Rejected the {where}: the text {reason}. The deterministic reasoning "
+                         f"the agents produced is kept instead, so the incident stays readable "
+                         f"and nothing the model said is shown to the operator."),
+            decision=f"REJECT the {where}.",
+            status="WARNING",
+        )
+        return reason
+
     async def process_event(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         event_type = event.get("event_type", "")
+        if event_type == "AGENT_MESSAGE":
+            return self.inspect_agent_message(event)
         if event_type not in ["CYBER_EVENT"]:
             return None
 
@@ -240,6 +355,7 @@ class CybersecurityAgent(BaseAgent):
             ],
             "spoofed_sensor": spoof.get("sensor_id") if spoof else None,
             "distrusted_sensors": sorted(self.distrusted_sensors),
+            "distrusted_agents": sorted(self.distrusted_agents),
             "observation": observation,
             "decision": decision,
         }

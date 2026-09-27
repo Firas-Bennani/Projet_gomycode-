@@ -133,6 +133,25 @@ async def receive_enrichment(incident_id: str, body: EnrichmentRequest):
         "recommended_action_ids": list(body.recommended_action_ids),
         "sources": list(body.sources),
     }
+    # ---- the LLM channel is untrusted input (item B) ---------------------------------------
+    # This text is written by a language model that has just read a document corpus and an
+    # incident payload. Before it is cached, shown, or allowed to name actions, it is scanned for
+    # instruction injection. Rejecting it here keeps the deterministic reasoning the agents
+    # produced, which is complete on its own — the enrichment is an improvement, never a
+    # dependency. Note the order: the scan runs BEFORE llm_cache.remember(), so a poisoned answer
+    # cannot be stored and replayed on stage later.
+    from ai.agents.cyber_agent import CybersecurityAgent
+
+    narrative = " ".join(str(part) for part in
+                         [fields["what"], fields["impact"], fields["prediction"]] + list(fields["why"]))
+    injection = CybersecurityAgent().screen_llm_text(narrative, where="n8n enrichment")
+    if injection:
+        _log("cyber_agent", ["LLM_ENRICHMENT"],
+             f"Rejected the enrichment for {incident_id}: the text {injection}. The deterministic "
+             f"reasoning stands; nothing from this answer was cached or shown.",
+             "REJECT the n8n enrichment.")
+        raise HTTPException(status_code=422, detail=f"enrichment rejected: {injection}")
+
     provenance_source = "template fallback" if body.fallback else body.produced_by
     replayed_from = None
 

@@ -177,6 +177,24 @@ class CommandEngine:
             checks.append({"check": f"On-call electrical crew called to {target}; 2 technicians "
                                     f"acknowledged", "passed": True})
 
+        # ---- the copilot defending itself (item B) ----------------------------------
+        elif action.action_type == "QUARANTINE_AGENT":
+            from ai import agent_bus_auth, risk_engine as risk
+            quarantined = sorted(getattr(state, "quarantined_agents", set()))
+            checks.append({"check": f"Message bus quarantine active; unsigned or badly signed "
+                                    f"messages are dropped at the boundary", "passed": True})
+            checks.append({"check": f"Agents currently down-weighted to "
+                                    f"{agent_bus_auth.COMPROMISED_TRUST:.1f}: "
+                                    f"{', '.join(sorted(risk.TRUST)) or 'none'}"
+                                    + (f"; quarantined: {', '.join(quarantined)}" if quarantined else ""),
+                           "passed": True})
+
+        elif action.action_type == "REQUIRE_HUMAN_AUTHORISATION":
+            state.autonomy_suspended = True
+            checks.append({"check": "Autonomous execution suspended: every action now waits for an "
+                                    "owner, including the ones normally allowed to auto-execute",
+                           "passed": True})
+
         elif action.action_type == "ISOLATE_DEVICE":
             checks.append({"check": f"Switch port 14 isolated, rogue MAC {target} blacklisted", "passed": True})
 

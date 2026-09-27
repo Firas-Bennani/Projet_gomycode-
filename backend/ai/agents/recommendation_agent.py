@@ -157,6 +157,12 @@ class RecommendationAgent(BaseAgent):
         if weather_obs:
             return self._weather_incident(weather_obs, worker_obs, resolved_zone)
 
+        # 0. The copilot's own integrity outranks every plant hazard: if an agent's messages
+        #    cannot be authenticated, nothing built on them can be trusted either.
+        attack_obs = [o for o in observations if o.get("agent_attack")]
+        if attack_obs:
+            return self._agent_compromise_incident(attack_obs, resolved_zone)
+
         # 1. Cyber is an independent domain and never competes with physical hazards.
         if cyber_obs:
             return self._cyber_incident(cyber_obs, worker_obs, resolved_zone)
@@ -451,6 +457,64 @@ class RecommendationAgent(BaseAgent):
             "affected_assets": list(primary.get("exposed_assets") or []),
             "affected_workers": workers,
             "evidence": self._evidence(weather_obs + ([worker_obs] if worker_obs else [])),
+            "ai_reasoning": reasoning,
+            "recommended_actions": actions,
+            "status": "ACTIVE",
+        }
+
+    # ------------------------------------------------------------------ the copilot itself
+
+    def _agent_compromise_incident(self, attack_obs, zone) -> Dict[str, Any]:
+        """The reasoning layer is under attack, not the plant."""
+        from ai import agent_bus_auth
+        from ai.actions_catalog import CATALOG
+
+        primary = attack_obs[0]
+        claimed = primary.get("impersonated_agent", "unknown")
+        risk = risk_engine.assess(attack_obs, "AGENT_COMPROMISE",
+                                  assets=["Inter-agent message bus"], workers_exposed=0)
+
+        why = [f"1) {primary.get('rejection_reason', 'message authentication failed')}.",
+               f"2) The message was rejected before the fusion, so no evidence from it reached "
+               f"the risk engine.",
+               f"3) {claimed} is now weighted "
+               f"{agent_bus_auth.COMPROMISED_TRUST:.1f} instead of 1.0, so the plant stays "
+               f"monitored while its messages are in doubt."]
+
+        actions = [CATALOG[key].to_recommended_action({"zone": zone})
+                   for key in ("quarantine_agent", "require_human_authorisation")
+                   if key in CATALOG]
+
+        reasoning = self._reasoning(
+            what=f"An unauthenticated message claiming to come from {claimed} was published on "
+                 f"the internal agent bus. The cyber agent rejected it.",
+            why=why,
+            risk=risk,
+            impact="No plant hazard has been observed. What is at risk is the copilot's own "
+                   "reasoning: accepted, this message would have become evidence in an incident "
+                   "and could have driven a recommendation.",
+            todo="Quarantine the impersonated agent on the bus and suspend autonomous execution "
+                 "until every agent's signing key is verified.",
+            approver="Owner confirmation required: quarantining an agent reduces what the "
+                     "copilot can see.",
+        )
+
+        self.update_status(
+            task="Integrity of the agent bus",
+            observation=f"Forged message claiming to be {claimed}; rejected before fusion.",
+            decision="Declare AGENT_COMPROMISE.",
+            status="WARNING",
+        )
+        return {
+            "id": f"INC-{uuid.uuid4().hex[:4].upper()}",
+            "type": "AGENT_COMPROMISE",
+            "severity": SEVERITY_ENUM[risk.severity],
+            "confidence": risk.confidence,
+            "zone": zone,
+            "timestamp": clock.now(),
+            "affected_assets": ["Inter-agent message bus"],
+            "affected_workers": [],
+            "evidence": self._evidence(attack_obs),
             "ai_reasoning": reasoning,
             "recommended_actions": actions,
             "status": "ACTIVE",

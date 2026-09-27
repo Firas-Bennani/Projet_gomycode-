@@ -53,11 +53,14 @@ export const MultiAgentView: React.FC<MultiAgentViewProps> = ({ agents, logs }) 
             </h2>
           </div>
           <span className="px-2 py-0.5 text-[11px] font-mono bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 rounded-full">
-            5/5 AGENTS ACTIVE
+            6/6 AGENTS ACTIVE
           </span>
         </div>
         <p className="text-xs text-slate-400 leading-relaxed">
-          Decentralized reasoning mesh: specialized agents continuously analyze environmental, mechanical, worker, and cyber signals to formulate joint incident hypotheses.
+          Decentralized reasoning mesh: specialized agents continuously analyze environmental, mechanical, worker, cyber and weather-forecast signals to formulate joint incident hypotheses.
+        </p>
+        <p className="mt-2 text-xs text-amber-300/90 leading-relaxed border-t border-slate-800 pt-2">
+          <span className="font-bold">Agent-to-agent integrity:</span> every message between agents carries an HMAC-SHA256 signature over its own content. The cybersecurity agent verifies each one and rejects anything unsigned, badly signed, or sent by an agent id that does not exist &mdash; so forged evidence never reaches the fusion. A rejected message costs the impersonated agent its trust weight (1.0 &rarr; 0.2) and raises an AGENT_COMPROMISE incident. The language-model channel is screened for instruction injection on the same principle.
         </p>
       </div>
 

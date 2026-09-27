@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, RotateCcw, Flame, ShieldAlert, Sparkles, AlertTriangle, CloudLightning } from 'lucide-react';
+import { Play, RotateCcw, Flame, ShieldAlert, Sparkles, AlertTriangle, CloudLightning, UserX } from 'lucide-react';
 
 interface DemoScenarioBarProps {
   currentScenario: string;
@@ -81,6 +81,19 @@ export const DemoScenarioBar: React.FC<DemoScenarioBarProps> = ({
         >
           <CloudLightning className="w-3.5 h-3.5 text-sky-400" />
           <span>Scenario 4: Storm Forecast (predictive)</span>
+        </button>
+
+        <button
+          onClick={() => onTriggerScenario('agent_attack')}
+          title="An attacker forges messages on the copilot's own agent bus. No machine is touched."
+          className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            currentScenario === 'agent_attack'
+              ? 'bg-fuchsia-600/40 text-fuchsia-300 border border-fuchsia-500/60 shadow-sm animate-pulse'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
+          }`}
+        >
+          <UserX className="w-3.5 h-3.5 text-fuchsia-400" />
+          <span>Scenario 5: Forged Agent Message</span>
         </button>
 
         <button
