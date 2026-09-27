@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from ai import clock, trend
+from ai import clock, ml_models, trend
 from ai.agents.base_agent import BaseAgent
 
 # Pressure thresholds in bar, unchanged from the original agent.
@@ -136,6 +136,19 @@ class MachineAgent(BaseAgent):
 
         anomaly = severity in ("WARNING", "CRITICAL")
 
+        # ---- Step 6: Isolation Forest second opinion -------------------------------------
+        # Annotates only. The model never creates or suppresses an alarm, so a missing model
+        # file or an unsupplied feature degrades the explanation, never the detection.
+        ml = ml_models.machine_anomaly(pressure=pressure, machine_temperature=temp, rpm=rpm)
+        ml_text = ""
+        if ml:
+            verdict = "outside" if ml["is_anomaly"] else "within"
+            ml_text = (f" Isolation Forest trained on MetroPT-3 scores this sample "
+                       f"{ml['anomaly_score']:.3f} ({verdict} its {ml['score_threshold']:.3f} "
+                       f"threshold); furthest-from-normal channel: {ml['most_deviant_feature']} "
+                       f"at {ml['most_deviant_z']:+.1f} sigma.")
+        # ---------------------------------------------------------------------------------
+
         if anomaly:
             eta_text = ""
             if eta_pressure_s is not None and eta_pressure_s > 0:
@@ -143,7 +156,7 @@ class MachineAgent(BaseAgent):
             elif eta_temp_s is not None and eta_temp_s > 0:
                 eta_text = f" At the current rate {machine_id} reaches {temp_limit:.0f}°C in ~{eta_temp_s:.0f}s."
             observation = (
-                f"{headline} on {machine_id}: {'; '.join(reasons)} ({trend_text}).{eta_text}"
+                f"{headline} on {machine_id}: {'; '.join(reasons)} ({trend_text}).{eta_text}{ml_text}"
             )
             decision = (
                 f"TRIGGER EMERGENCY SHUTDOWN RECOMMENDED for {machine_id}"
@@ -186,6 +199,13 @@ class MachineAgent(BaseAgent):
             "eta_to_temperature_limit_s": eta_temp_s,
             "history_span_s": round(history_span, 1),
             "failing_parameters": reasons,
+            # --- Step 6 model annotations (absent when no model is loaded) ---
+            "anomaly_score": ml["anomaly_score"] if ml else None,
+            "anomaly_score_threshold": ml["score_threshold"] if ml else None,
+            "ml_is_anomaly": ml["is_anomaly"] if ml else None,
+            "most_deviant_feature": ml["most_deviant_feature"] if ml else None,
+            "most_deviant_z": ml["most_deviant_z"] if ml else None,
+            "ml_model": ml["model"] if ml else None,
             "observation": observation,
             "decision": decision,
         }

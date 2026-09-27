@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from ai import clock, trend
+from ai import clock, ml_models, trend
 from ai.agents.base_agent import BaseAgent
 
 # Absolute thresholds per sensor family. Kept identical to the original agent so the demo
@@ -89,9 +89,22 @@ class TemperatureAgent(BaseAgent):
         elif warning_level or warning_rate:
             anomaly, severity = True, "WARNING"
 
+        # ---- Step 6: the smoke classifier is deliberately NOT used here -----------------
+        # It was trained and measured (F1 0.928 on its own test split) and then rejected for
+        # this purpose. In the Kaggle Smoke Detection IoT dataset every intuitive fire
+        # indicator is *negatively* correlated with the "Fire Alarm" label: PM2.5 -0.085,
+        # TVOC -0.215, temperature -0.164, and mean PM2.5 is 78 when alarm=1 versus 450 when
+        # alarm=0. The label tracks which trial the test rig was in, not fire physics, which is
+        # also why a 12-feature model scores a perfect 1.000 on it.
+        # Wiring it to our smoke sensor made it report "0% fire" at 75 ppm in a hot zone. A
+        # confidently wrong number on an incident card is worse than no number, so the fire path
+        # stays on the rules in FIRE-EP-03 (smoke present + 2 corroborating signals).
+        # ml_models.smoke_probability() is kept for the record; see docs/ai/METRICS.md §4.2.
+        smoke_ml = None
         observation, decision = self._describe(
             sensor_type, sensor_id, zone, val, unit, severity, trend_text, sustained_critical
         )
+        # ---------------------------------------------------------------------------------
 
         self.update_status(
             task=f"Monitoring environmental sensors in {zone}",
@@ -118,11 +131,26 @@ class TemperatureAgent(BaseAgent):
             "history_span_s": round(history_span, 1),
             "readings": len(points),
             "sustained_critical": sustained_critical,
+            # --- Step 6 model annotation (None when no model or no temperature available) ---
+            "smoke_probability": smoke_ml["smoke_probability"] if smoke_ml else None,
+            "smoke_model": smoke_ml["model"] if smoke_ml else None,
             "threshold_warning": levels["warning"],
             "threshold_critical": levels["critical"],
             "observation": observation,
             "decision": decision,
         }
+
+    @staticmethod
+    def _zone_temperature(zone: str):
+        """Latest ambient temperature for the zone, from the state store. None if unknown."""
+        try:
+            from app.services.state_store import state
+            for sensor in state.sensors.values():
+                if sensor.type == "temperature" and sensor.zone == zone:
+                    return float(sensor.current_value)
+        except Exception:
+            pass
+        return None
 
     def _describe(self, sensor_type, sensor_id, zone, val, unit, severity, trend_text, sustained):
         """Observation and decision strings, built from the real readings."""

@@ -63,3 +63,6 @@ DATESSSS/
 
 # Firas's dataset downloads (MetroPT-3, SKAB, Smoke, MITRE ICS) - kept out of git (Step 6 copies what it needs)
 Dataset/
+
+# The rejected smoke model (4 MB, trained + measured but not used at runtime - see METRICS 4.2)
+backend/ai/models/smoke_rf.joblib

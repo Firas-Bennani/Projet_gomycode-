@@ -161,7 +161,86 @@ sensor and why. Step 8 wires the cyber agent's spoof detection into `set_trust()
 
 ---
 
-## 4. Still to be measured
+## 4. ML models (Step 6) — trained locally on CPU, no GPU
+
+Brev was never approved, so both models were trained on the demo laptop. The scripts contain
+nothing CUDA-specific and would run unchanged on a GPU instance.
+
+### 4.1 Compressor anomaly — Isolation Forest on MetroPT-3 ✅ shipped
+
+`python backend/scripts/train_machine_iforest.py` — **27 s** end to end, ~40 MB peak RAM. The
+218 MB / 1.5 M-row CSV is read in 250 k-row chunks with 5 of its 16 columns and resampled to 10 s
+immediately, so the full frame never exists in memory.
+
+Features `TP2, TP3, Oil_temperature, Motor_current`. Fitted on **normal operation only**: the four
+air-leak windows were read out of the dataset's own `Data Description_Metro.pdf` ("Failure
+Information" table) rather than from memory — 2020-04-18, 2020-05-29/30, 2020-06-05/07,
+2020-07-15. Train 1,179,528 rows; test 294,882 held-out normal + 29,697 failure rows.
+
+| Operating point | Precision | Recall | F1 |
+|---|---|---|---|
+| `contamination=0.01` (the library default cut-off) | 0.754 | 0.098 | 0.173 |
+| **tuned threshold −0.5762** (swept on held-out data, stored in the bundle) | 0.624 | **0.980** | **0.763** |
+
+**ROC AUC = 0.976.** That is the number that matters: the score separates the documented failures
+from normal operation very well, and `contamination=0.01` was simply a far too strict place to put
+the line — it only flags the most extreme 1% of training points. The runtime therefore uses
+`score_samples()` against the measured threshold, not `predict()`.
+
+**Cross-domain check on SKAB (different machine, z-scored into the same 4 dimensions):
+ROC AUC 0.495, F1 0.035 — i.e. chance.** Reported because it was measured, not buried: an
+Isolation Forest fitted on one compressor does **not** transfer to a pump rig. Anyone claiming
+cross-machine transfer from a model like this should be asked for their AUC.
+
+Runtime effect: `machine_agent` observations now carry `anomaly_score`,
+`anomaly_score_threshold`, `ml_is_anomaly`, `most_deviant_feature`, `most_deviant_z`, and say so
+in words. Live example from an incident's evidence:
+
+> *"OVERPRESSURE on M-04: pressure 8.92 bar over the 8.0 bar operating limit … Isolation Forest
+> trained on MetroPT-3 scores this sample −0.700 (outside its −0.576 threshold);
+> furthest-from-normal channel: machine_temperature at +5.3 sigma."*
+
+### 4.2 Smoke classifier — trained, measured, and deliberately NOT shipped ⚠️
+
+`python backend/scripts/train_smoke.py` — 4 s, 62,630 rows.
+
+| Model | Features | Precision | Recall | F1 | ROC AUC |
+|---|---|---|---|---|---|
+| full | 12 (all dataset channels) | 1.000 | 1.000 | 1.000 | 1.000 |
+| deployable | 2 (`Temperature`, `PM2.5` — all our plant has) | 0.910 | 0.946 | 0.928 | 0.943 |
+
+Those look excellent and **the model is still not used at runtime**, because of what it is actually
+learning. In the Kaggle Smoke Detection IoT dataset every intuitive fire indicator is *negatively*
+correlated with the `Fire Alarm` label:
+
+| Channel | mean when alarm=1 | mean when alarm=0 | correlation with the label |
+|---|---|---|---|
+| PM2.5 | 78.4 | **450.0** | −0.085 |
+| TVOC | 882 | **4597** | −0.215 |
+| Temperature | 14.5 °C | **19.7 °C** | −0.164 |
+| Humidity | 50.8 % | 42.9 % | **+0.400** |
+
+The label tracks which trial the test rig was in, not fire physics — which is also why a
+12-feature model reaches a perfect 1.000. Wired to our smoke sensor it reported **"0% probability
+of a real fire signature" for 75 ppm of smoke in a hot zone.**
+
+A confidently wrong number on an incident card is worse than no number, so the fire path stays on
+the FIRE-EP-03 rules (smoke present plus two corroborating signals). The training script, the
+metrics and the `.joblib` loader all remain; `temperature_agent` simply does not consult it, and a
+test asserts that omission with the reason attached.
+
+### 4.3 The design rule that makes this safe
+
+**The models annotate; the deterministic rules decide.** A score never creates and never
+suppresses an alarm. `test_machine_agent_detects_identically_without_the_models` deletes the model
+file and asserts the same CRITICAL verdict with the same rule explanation. That is why rejecting
+the smoke model cost nothing, and why a model regression can only ever degrade an explanation.
+
+**94 pytest tests pass** (13 new for Step 6).
+
+---
+
+## 5. Still to be measured
 
 - **Step 5b** — NIM on Brev: model name, latency, and the NIM → Gemini → template chain
   demonstrated once in each of its three states.
