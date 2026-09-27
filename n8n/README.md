@@ -167,11 +167,30 @@ Webhook -> Code: build agent input (flattens the incident + the allowed_actions 
   -> Code: validate against allowed_actions -> ... identical to v1 ...
 ```
 
-Three Gemini nodes need the credential: the agent's chat model, the **vector-store tool's own**
-chat model (n8n flags the tool red without one), and the embeddings node. Models in use:
-`models/gemini-3.8-flash` for chat, `models/gemini-embedding-001` for embeddings.
+### Models and credentials
+
+Two credentials, four model nodes:
+
+| Node | Credential | Model |
+|---|---|---|
+| `Groq Chat Model (primary)` | `OpenAI account` (openAiApi, base URL `https://api.groq.com/openai/v1`) | `openai/gpt-oss-120b` |
+| `Google Gemini Chat Model` — the agent's **fallback** | `Google Gemini(PaLM) Api account` | `models/gemini-3.8-flash` |
+| `Google Gemini Chat Model1` — the vector-store tool's own model | same Gemini credential | `models/gemini-3.8-flash` |
+| `Embeddings Gemini (retrieve)` and the ingestion's embeddings | same Gemini credential | `models/gemini-embedding-001` |
+
+Groq and Gemini are the agent's native primary/fallback pair (`needsFallback: true`, two
+`ai_languageModel` inputs). The vector-store **tool** needs its own model — n8n flags it red
+without one.
+
+⚠️ **Check the model list against the key, do not trust a name from memory.** On this Groq key
+there is **no Llama instruct model**; the usable chat models are `openai/gpt-oss-120b`,
+`openai/gpt-oss-20b`, `openai/gpt-oss-safeguard-20b` and `qwen/qwen3.8-27b`. Likewise
 `models/gemini-2.5-flash` returns 404 *"no longer available to new users"* and
-`models/text-embedding-004` was not available for this key.
+`models/text-embedding-004` is not on the Gemini key. To list what a key really offers, point an
+HTTP Request node with the credential at `<base-url>/models`.
+
+**Full chain: Groq → Gemini → cached answer → deterministic template.** The incident text names
+which one answered.
 
 Two safety properties worth stating to a jury:
 

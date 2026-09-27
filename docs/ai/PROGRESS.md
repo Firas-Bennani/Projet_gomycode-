@@ -641,3 +641,45 @@ locks that in so the cyber demo cannot regress. Extra payloads for Engineer 2 ar
 **P8**; until then the rules are covered by 15 synthetic-event tests.
 
 **114 pytest tests pass** (20 new for items 3 and 4).
+
+---
+
+## Groq as the primary model + feature-freeze verification (2026-09-27 ~11:40)
+
+**Model choice was measured, not guessed.** Queried `GET /v1/models` through the stored n8n
+credential (via a throwaway workflow, so the key never left n8n): this key exposes
+`openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `openai/gpt-oss-safeguard-20b` and
+`qwen/qwen3.8-27b` — plus Whisper, TTS and 512-token prompt-guard classifiers. **There is no Llama
+instruct model on this key**, so the suggested Llama 3.x was not an option. Primary is
+`openai/gpt-oss-120b` (131k context).
+
+**Groq changed the picture entirely:**
+
+| | Gemini `gemini-3.8-flash` | Groq `openai/gpt-oss-120b` |
+|---|---|---|
+| Latency, detection → enrichment | 37.7 s | **4.1 s** |
+| Live answers | 1 of 5 | **8 of 9** |
+| Rate limit hit? | constantly (5/min) | never |
+
+**Chain: Groq → Gemini → cached → template.** Groq and Gemini use the AI Agent's *native*
+primary/fallback support (`needsFallback: true`, two `ai_languageModel` inputs), so the fallback is
+n8n's own mechanism rather than something bolted on. The cached layer is in the backend and the
+template is the agent's error branch.
+
+**The incident text names the model that actually answered.** The Validate node asks n8n which
+model node ran (`$('Groq Chat Model (primary)').isExecuted`, in a try/catch), so a silent fallback
+is still visible: `openai/gpt-oss-120b on Groq`, `Gemini (Groq unavailable, fell back)`,
+`cached … answer from <time>`, or `template fallback`.
+
+**Cache warmed 3/3**, each with sections the model really retrieved — `SOP-M04 §2/§4.2`,
+`FIRE-EP-03 §2/§3.2/§3.3`, `OT-CYBER-PB §2/§3.1/§3.2`. Committed, so the demo has LLM-quality
+wording even with no internet. One caveat worth knowing on stage: the overheating answer was
+captured at *warning* level, so it cites §4.1/§2 and chooses cooling rather than the shutdown. The
+deterministic `STOP_MACHINE` card is created at detection regardless, so the AUTHORIZE click is
+unaffected — only the replayed wording omits it.
+
+**Feature-freeze verification — `python n8n/final_verification.py --rounds 3`: all checks passed in
+every round.** Three rounds of all four scenarios: overheating CRITICAL 0.94 with machine +
+temperature + worker evidence; fire CRITICAL 0.85 naming SMOKE-B-01; cyber HIGH 0.80 naming
+UNKNOWN-DEVICE-07; normal silent. Groq served 8 of 9 incidents. Alongside: **115 pytest tests**,
+`e2e_test.py` **15/15**, `gate1_verify.py` **13/13**.

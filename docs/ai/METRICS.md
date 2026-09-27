@@ -36,7 +36,38 @@ M-04 returns to baseline, no new incident opens, and the n8n execution goes gree
 
 ---
 
-## 2. LLM path — Gemini via the n8n AI Agent (Step 5)
+## 2. LLM path (Steps 5 + item 3)
+
+### 2.0 Groq is now the primary model, and it changed the picture entirely
+
+Added after Gemini proved unusable on the free tier. The model was chosen from the list the key
+**actually exposes** (`GET /v1/models` through the stored n8n credential): `openai/gpt-oss-120b`,
+`openai/gpt-oss-20b`, `openai/gpt-oss-safeguard-20b`, `qwen/qwen3.8-27b` — everything else on the
+key is Whisper, TTS or a 512-token prompt-guard classifier. **No Llama instruct model is available
+on this key.** Primary is `openai/gpt-oss-120b` (131k context).
+
+| | Gemini `gemini-3.8-flash` | **Groq `openai/gpt-oss-120b`** |
+|---|---|---|
+| Latency, detection → enrichment back | 37.7 s | **4.1 s** (9× faster) |
+| Attempts that produced a live answer | **1 of 5** | **8 of 9** |
+| Rate limit | 5 requests/minute | far higher; never hit it |
+| Citations produced | yes | yes |
+
+Chain, in order: **Groq → Gemini → cached answer → deterministic template.** Groq and Gemini are
+wired as the AI Agent's native primary and fallback models (`needsFallback: true`, two
+`ai_languageModel` inputs); the cached layer and the template live in the backend and the
+workflow's error branch respectively.
+
+The incident text names the model that actually answered — the Validate node asks n8n which model
+node executed (`$('Groq Chat Model (primary)').isExecuted`), so a silent fallback is still visible:
+
+```
+— enriched by openai/gpt-oss-120b on Groq via n8n AI Agent; 3 of 3 proposed action(s) validated
+```
+
+reading `Gemini (Groq unavailable, fell back)` or `cached … answer from <time>` on the other paths.
+
+### 2.1 Gemini, measured before Groq existed — kept because it justifies the chain
 
 Reproduce: `..\.venv\Scripts\python.exe n8n\llm_roundtrip.py`
 Break test: `..\.venv\Scripts\python.exe n8n\llm_roundtrip.py --break`
@@ -45,7 +76,7 @@ Model: `models/gemini-3.8-flash` (chat), `models/gemini-embedding-001` (embeddin
 Google AI Studio **free tier**. Latency is measured from incident creation to the enrichment
 arriving back at the backend, so it includes n8n overhead and the agent's tool calls.
 
-### 2.1 When the model answers
+#### When Gemini answered
 
 | Run | Latency | Citations produced | Actions validated | Incident resolved |
 |---|---|---|---|---|
@@ -61,7 +92,7 @@ Note it cited **§4.1 (warning level)** rather than §4.2 (critical), because th
 warning level when the incident was raised. That is the procedure being followed correctly, not
 a mistake.
 
-### 2.2 When it does not — 4 of 5 attempts fell back
+#### When it did not — 4 of 5 attempts fell back
 
 All three failures below are **Google-side**, and all of them degraded cleanly to the
 deterministic template with no operator-visible breakage:
@@ -77,7 +108,7 @@ deterministic template with no operator-visible breakage:
 **Success rate of the LLM path as measured: 1 / 5.** Success rate of *the system producing
 validated recommendations and resolving the incident*: **5 / 5.**
 
-### 2.3 What this means for the demo
+### 2.2 What this means for the demo
 
 - **The demo must not depend on Gemini.** It currently doesn't: the AI Agent node runs with
   `onError: continueErrorOutput` into the same deterministic template v1 uses, producing an
@@ -86,12 +117,13 @@ validated recommendations and resolving the incident*: **5 / 5.**
 - **The free tier allows 5 model calls per minute** and one incident costs about 3, so
   back-to-back scenarios will throttle. `n8n/README.md` tells the operator to leave ~60 s
   between runs.
-- This is the strongest argument for **Step 5b (NVIDIA NIM on Brev) as the primary model**, with
-  Gemini second and the template last — which is the chain already planned.
+- Brev was never approved, so the answer was a **second provider instead of a bigger model**:
+  Groq, added in §2.0, which is both faster and far more reliable on its free tier. Gemini is now
+  the fallback rather than the primary.
 - Tool calls cost model calls. Constraining the agent to one `procedure_search` call and
   `maxIterations: 3` cut usage from 6+ calls (which hit 429) to 2–3.
 
-### 2.4 Retrieval worked regardless
+### 2.3 Retrieval worked regardless
 
 In every execution the retrieval tools themselves succeeded: `procedure_search` (HTTP to the
 backend keyword RAG) returned hits 4/4 times it was called, and the Simple Vector Store
@@ -240,7 +272,54 @@ the smoke model cost nothing, and why a model regression can only ever degrade a
 
 ---
 
-## 5. Still to be measured
+## 5. Cached-answer layer (item 3)
+
+`live → cached → template`, keyed by incident type, persisted to `backend/ai/data/llm_cache.json`.
+Warmed for all three hazard types, each with citations the model actually retrieved:
+
+| Hazard | Cached from | Actions chosen | Sections cited |
+|---|---|---|---|
+| `MACHINE_OVERHEATING` | `openai/gpt-oss-120b` on Groq | activate_cooling, evacuate_zone, trigger_alarm | `SOP-M04 §2`, `§4.2` |
+| `INDUSTRIAL_FIRE` | `gemini-3.8-flash` | trigger_alarm, evacuate_zone, close_door, activate_suppression | `FIRE-EP-03 §2`, `§3.2`, `§3.3` |
+| `CYBER_INTRUSION` | `openai/gpt-oss-120b` on Groq | vlan_quarantine, isolate_device | `OT-CYBER-PB §2`, `§3.1`, `§3.2` |
+
+A replay is always labelled and dated, cached action ids are re-validated against the catalogue,
+and only wording plus action ids are replayable — confidence and severity are never cached.
+
+Worth knowing for the demo: the overheating answer was captured while the incident was at
+**warning** level, so it cites `SOP-M04 §4.1/§2` and chooses cooling rather than the shutdown. The
+deterministic `STOP_MACHINE` card is created at detection regardless, so the AUTHORIZE click is
+unaffected — but the replayed *wording* will not mention the shutdown. The agent is invoked once, at
+incident creation, which is always the warning-level moment.
+
+**One defect found and fixed here:** the test suite was writing *and deleting* this production
+cache file — any bridge test posting an enrichment without `fallback=True` counted as a live answer
+and called `remember()`, while the cache tests' cleanup called `clear()`, which unlinks it. It had
+already overwritten a warmed answer with `{"what": "x"}`, which would have been replayed on stage
+labelled as a cached model answer. Every test is now redirected to a temp path by an autouse
+fixture, and the cache refuses to store a threadbare answer.
+
+---
+
+## 6. Feature-freeze verification
+
+`python n8n/final_verification.py --rounds 3` — **all checks passed in every round**, three rounds
+of all four scenarios through the live stack:
+
+| Scenario | Incidents | Type | Severity | Confidence | Evidence checked |
+|---|---|---|---|---|---|
+| `machine_overheating` | 1 | `MACHINE_OVERHEATING` | CRITICAL | 0.94 | machine + temperature + worker, names M-04 |
+| `fire` | 1 | `INDUSTRIAL_FIRE` | CRITICAL | 0.85 | temperature + worker, names SMOKE-B-01 |
+| `cybersecurity` | 1 | `CYBER_INTRUSION` | HIGH | 0.80 | cyber, names UNKNOWN-DEVICE-07 |
+| `normal` | 0 | — | — | — | stays silent |
+
+LLM path across the 9 incidents: **Groq 8, none 1** (one read immediately after the wait, before
+the enrichment landed). Alongside: **115 pytest tests**, `e2e_test.py` **15/15**,
+`gate1_verify.py` **13/13**.
+
+---
+
+## 7. Still to be measured
 
 - **Step 5b** — NIM on Brev: model name, latency, and the NIM → Gemini → template chain
   demonstrated once in each of its three states.
