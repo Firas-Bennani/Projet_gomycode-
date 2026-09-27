@@ -491,12 +491,25 @@ async def test_a_dead_resume_url_is_reported_cleanly_not_as_an_error():
 
 # --------------------------------------------------------------------- LLM answer cache
 
-def test_a_live_llm_answer_is_cached_and_then_replayed_when_the_model_fails():
-    """live -> cached -> template. Measured need: 1 in 5 live Gemini attempts succeeded."""
-    from ai import llm_cache
+@pytest.fixture
+def isolated_cache(tmp_path, monkeypatch):
+    """Point the LLM cache at a temp file.
 
-    llm_cache.clear()
-    try:
+    Without this the tests operate on the REAL cache at backend/ai/data/llm_cache.json and their
+    cleanup deletes it — which is exactly what happened: a test run wiped a warmed Gemini answer
+    that had taken several quota windows to capture.
+    """
+    from ai import llm_cache
+    monkeypatch.setattr(llm_cache, "CACHE_PATH", tmp_path / "llm_cache.json")
+    llm_cache.reset_memory()
+    yield llm_cache
+    llm_cache.reset_memory()
+
+
+def test_a_live_llm_answer_is_cached_and_then_replayed_when_the_model_fails(isolated_cache):
+    """live -> cached -> template. Measured need: 1 in 5 live Gemini attempts succeeded."""
+    llm_cache = isolated_cache
+    if True:
         seed_incident()
         live = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
             "what": "Hydraulic overpressure developing on M-04 in ZONE_B",
@@ -529,15 +542,10 @@ def test_a_live_llm_answer_is_cached_and_then_replayed_when_the_model_fails():
         assert "SOP-M04 4.2" in reasoning, "so do its citations"
         assert "cached models/gemini-3.8-flash" in reasoning
         assert "answer from" in reasoning, "a replayed answer must be dated"
-    finally:
-        llm_cache.clear()
 
 
-def test_the_template_is_used_when_nothing_is_cached():
-    from ai import llm_cache
-
-    llm_cache.clear()
-    try:
+def test_the_template_is_used_when_nothing_is_cached(isolated_cache):
+    if True:
         seed_incident()
         body = client.post("/api/ai/n8n/enrichment/INC-TEST", json={
             "what": "machine overheating affecting M-04 in ZONE_B",
@@ -549,18 +557,16 @@ def test_the_template_is_used_when_nothing_is_cached():
         assert body["llm_path"] == "template"
         assert body["replayed_from"] is None
         assert "template fallback" in state.incidents["INC-TEST"].ai_reasoning
-    finally:
-        llm_cache.clear()
 
 
-def test_a_cached_answer_cannot_smuggle_in_an_invalid_action():
+def test_a_cached_answer_cannot_smuggle_in_an_invalid_action(isolated_cache):
     """A stale cached id is re-validated against the catalogue like any other."""
-    from ai import llm_cache
-
-    llm_cache.clear()
-    try:
+    llm_cache = isolated_cache
+    if True:
         llm_cache.remember("MACHINE_OVERHEATING", {
-            "what": "cached wording", "why": ["cached why"], "impact": "cached impact",
+            # Long enough to pass is_worth_caching(): a placeholder is deliberately refused.
+            "what": "Hydraulic overpressure developing on M-04 in ZONE_B",
+            "why": ["cached why"], "impact": "cached impact",
             "prediction": "cached prediction",
             "recommended_action_ids": ["stop_machine", "launch_missiles", "close_door"],
             "sources": [],
@@ -577,8 +583,6 @@ def test_a_cached_answer_cannot_smuggle_in_an_invalid_action():
         rejected = {r["id"] for r in body["rejected"]}
         assert "launch_missiles" in rejected, "not in the catalogue"
         assert "close_door" in rejected, "not permitted for MACHINE_OVERHEATING"
-    finally:
-        llm_cache.clear()
 
 
 def test_a_cached_answer_never_carries_a_confidence_or_severity():
@@ -590,11 +594,9 @@ def test_a_cached_answer_never_carries_a_confidence_or_severity():
         "what", "why", "impact", "prediction", "recommended_action_ids", "sources"}
 
 
-def test_a_corrupt_cache_file_does_not_break_enrichment():
-    from ai import llm_cache
-
-    llm_cache.clear()
-    try:
+def test_a_corrupt_cache_file_does_not_break_enrichment(isolated_cache):
+    llm_cache = isolated_cache
+    if True:
         llm_cache.CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         llm_cache.CACHE_PATH.write_text("{ this is not json", encoding="utf-8")
         llm_cache.reset_memory()
@@ -606,5 +608,21 @@ def test_a_corrupt_cache_file_does_not_break_enrichment():
             "produced_by": "n8n template", "fallback": True,
         }).json()
         assert body["llm_path"] == "template"
-    finally:
-        llm_cache.clear()
+
+
+def test_a_threadbare_answer_is_not_cached(isolated_cache):
+    """A placeholder cached now is a placeholder replayed on stage.
+
+    This is not hypothetical: a test posting {"what": "x"} once overwrote a warmed Gemini answer
+    in the real cache file before the suite was isolated from it.
+    """
+    llm_cache = isolated_cache
+    llm_cache.remember("MACHINE_OVERHEATING", {"what": "x", "why": [], "sources": []}, "n8n")
+    assert llm_cache.recall("MACHINE_OVERHEATING") is None
+
+    llm_cache.remember("MACHINE_OVERHEATING", {
+        "what": "Hydraulic overpressure developing on M-04 in ZONE_B",
+        "why": ["pressure 8.32 bar over its 8.0 bar limit"],
+        "recommended_action_ids": ["stop_machine"], "sources": [],
+    }, "models/gemini-3.8-flash")
+    assert llm_cache.recall("MACHINE_OVERHEATING") is not None

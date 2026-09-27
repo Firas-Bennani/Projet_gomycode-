@@ -61,8 +61,25 @@ def _save() -> None:
         logger.warning("Could not write %s (%s).", CACHE_PATH, exc)
 
 
+#: An answer must carry at least this much to be worth replaying. A thin or placeholder answer
+#: cached now becomes a thin answer replayed on stage, so it is refused.
+MIN_WHAT_CHARS = 25
+
+
+def is_worth_caching(payload: Dict[str, Any]) -> bool:
+    """Substantial enough to replay later? Guards against caching a placeholder."""
+    what = (payload.get("what") or "").strip()
+    if len(what) < MIN_WHAT_CHARS:
+        return False
+    return bool(payload.get("why")) or bool(payload.get("recommended_action_ids"))
+
+
 def remember(incident_type: str, payload: Dict[str, Any], produced_by: str) -> None:
     """Store a *live* LLM answer for this hazard type. Overwrites any older one."""
+    if not is_worth_caching(payload):
+        logger.info("Not caching a threadbare %s answer from %s (what=%r)",
+                    incident_type, produced_by, (payload.get("what") or "")[:40])
+        return
     entry = {field: payload.get(field) for field in REPLAYABLE}
     entry["produced_by"] = produced_by
     entry["cached_at"] = datetime.utcnow().isoformat(timespec="seconds")
