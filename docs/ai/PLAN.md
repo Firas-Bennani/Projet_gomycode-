@@ -1,4 +1,4 @@
-# AI Industrial Copilot — Engineer 1 master plan
+# Industrial_Copilot — Engineer 1 master plan
 
 > This is the verbatim master prompt for my part of the hackathon (Multi-Agent AI + n8n orchestration).
 > Deadline: **Sunday 17:00 Europe/London**. Re-read this and `PROGRESS.md` if the session restarts.
@@ -9,7 +9,7 @@ You are my pair-programmer for a 24-hour AI hackathon. The deadline is **Sunday 
 
 ## 1. Project and repository
 
-- Team repo: `https://github.com/amalmch/Projet_gomycode-` ("AI Industrial Copilot").
+- Team repo: `https://github.com/amalmch/Projet_gomycode-` ("Industrial_Copilot").
 - Stack already in the repo: FastAPI backend (`backend/`), React + TypeScript + Three.js frontend (`frontend/`), in-process simulator (`backend/iot/simulator.py`), in-process event bus (`backend/app/services/event_bus.py`), in-memory state (`backend/app/services/state_store.py`), docker-compose (backend, frontend, redis, mosquitto).
 - Demo scenarios are triggered with `POST /api/demo/scenario` body `{"scenario": "normal|machine_overheating|cybersecurity|fire"}` and reset with `POST /api/demo/reset`.
 

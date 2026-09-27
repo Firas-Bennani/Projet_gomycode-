@@ -1,4 +1,4 @@
-# DEMO — AI Industrial Copilot, the multi-agent + n8n part
+# DEMO — Industrial_Copilot, the multi-agent + n8n part
 
 Engineer 1's script. Total **3 min 35 s** of demo across four scenarios, plus ~40 s of setup.
 Every number quoted here is in `docs/ai/METRICS.md` with the command that produced it.

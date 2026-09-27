@@ -1,4 +1,4 @@
-# 🏭 AI Industrial Copilot
+# 🏭 Industrial_Copilot
 
 > **Next-Generation Autonomous Industrial Sentinel & Multi-Agent Tactical Decision Mesh**  
 > Built for the AI Industrial Competition by a team of 4 engineering students.
@@ -16,7 +16,7 @@
 
 Industrial manufacturing plants generate vast streams of fragmented data across IoT sensors, machine PLCs, CCTV cameras, and worker tracking systems. Operators and owners are overwhelmed by noisy alarms and lack cross-domain context when critical failures occur.
 
-The **AI Industrial Copilot** continuously observes the plant, detects anomalies, correlates cross-domain evidence through a specialized multi-agent mesh, formulates explainable risk assessments, recommends standard operating procedures, and — **with explicit human-in-the-loop authorization** — executes defensive physical commands through connected industrial IoT actuators.
+The **Industrial_Copilot** continuously observes the plant, detects anomalies, correlates cross-domain evidence through a specialized multi-agent mesh, formulates explainable risk assessments, recommends standard operating procedures, and — **with explicit human-in-the-loop authorization** — executes defensive physical commands through connected industrial IoT actuators.
 
 ```
 SENSE → ANALYZE → DETECT → REASON → RECOMMEND → AUTHORIZE → ACT → VERIFY → VISUALIZE

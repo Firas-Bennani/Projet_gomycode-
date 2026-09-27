@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ activeAlertCount }) => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-extrabold text-white tracking-wider font-mono">
-              AI INDUSTRIAL COPILOT
+              Industrial_Copilot
             </h1>
             <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded">
               v1.0 MVP

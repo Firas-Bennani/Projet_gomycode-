@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import List
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AI Industrial Copilot"
+    PROJECT_NAME: str = "Industrial_Copilot"
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
     

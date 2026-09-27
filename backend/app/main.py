@@ -27,7 +27,7 @@ logger = logging.getLogger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing AI Industrial Copilot backend...")
+    logger.info("Initializing Industrial_Copilot backend...")
     
     # Subscribe AI orchestrator to all events
     event_bus.subscribe("*", orchestrator.handle_event)
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    logger.info("Shutting down AI Industrial Copilot...")
+    logger.info("Shutting down Industrial_Copilot...")
     simulator.stop()
     sim_task.cancel()
 
