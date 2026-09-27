@@ -91,8 +91,14 @@ Click **machine_overheating**. Keep the n8n Executions tab visible.
 **Point at the last line of the reasoning.**
 
 > "And it tells you which model wrote this — `openai/gpt-oss-120b on Groq`. If Groq were down it
-> would say Gemini; if both were down, a cached answer with its timestamp; if all three, the
-> deterministic template. Four levels, and the incident resolves on every one of them."
+> tries Gemini and says so; if both are down, a cached answer with its timestamp; if all three,
+> the deterministic template. Four levels, and the incident resolves on every one of them."
+
+That is verified, not asserted: breaking the Groq model id produced one execution in which Groq
+errored, **Gemini was attempted** and hit its 429 quota, the agent took its error branch, the
+template ran, and the backend replaced it with the cached Groq answer — citations intact, incident
+resolved. See `METRICS.md §2.0b`. If you want to show it live, break the Groq node's model in n8n
+and re-run.
 
 **Seconds 30–60. Switch to the n8n window.** The execution is sitting on **Wait**.
 

@@ -67,6 +67,27 @@ node executed (`$('Groq Chat Model (primary)').isExecuted`), so a silent fallbac
 
 reading `Gemini (Groq unavailable, fell back)` or `cached … answer from <time>` on the other paths.
 
+### 2.0b All four levels of the chain, verified in a single execution
+
+The chain is not an assumption. Setting the Groq node's model to a non-existent id and re-running
+produced this, from n8n execution 68 (`GET /api/v1/executions/68?includeData=true`):
+
+```
+Groq Chat Model (primary):     error    the model `this-model-does-not-exist` does not exist
+Google Gemini Chat Model:      error    [429 Too Many Requests] quota exceeded
+Recommendation AI Agent:       success  took its error output
+Template recommendation:       success  deterministic template ran
+POST enrichment:               success  backend replaced it with the cached Groq answer
+```
+
+Incident text: `— enriched by cached openai/gpt-oss-120b on Groq answer from 2026-09-27T10:03:35`,
+citations `SOP-M04 §2, §4.2` intact, `STOP_MACHINE` authorised, **incident resolved**.
+
+Two things this confirms. First, `needsFallback` is genuinely wired: Gemini *was* invoked when
+Groq failed — it happened to be rate-limited at that moment, which is why the run continued to the
+cached layer rather than stopping at Gemini. Second, every level below it works, because all four
+were exercised in one execution and the incident still resolved.
+
 ### 2.1 Gemini, measured before Groq existed — kept because it justifies the chain
 
 Reproduce: `..\.venv\Scripts\python.exe n8n\llm_roundtrip.py`
