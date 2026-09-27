@@ -176,6 +176,10 @@ def main() -> int:
     print(f"      telemetry_consistent={verify.get('telemetry_consistent')} "
           f"(simulator keeps driving the scenario — informational only)")
 
+    # Poll: the three authorisations execute concurrently with a 2 s actuator delay each, so a
+    # single sample can land before the last one finishes. Observed once as a false failure.
+    wait_for(lambda: request("GET", f"{BACKEND}/api/incidents/{incident_id}")[1]
+             .get("status") in ("RESOLVED", "RESOLVING"), timeout=30, interval=2)
     _, final_incident = request("GET", f"{BACKEND}/api/incidents/{incident_id}")
     check("incident reached a resolved state",
           final_incident.get("status") in ("RESOLVED", "RESOLVING"),

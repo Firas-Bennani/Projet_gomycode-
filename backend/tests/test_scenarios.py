@@ -381,18 +381,6 @@ async def test_hard_cooldown_blocks_reopening_even_when_values_climb():
         state.initialize_state()
 
 
-@pytest.mark.xfail(
-    reason="CONFLICTS WITH AN UPSTREAM CHANGE, not yet resolved with the team. "
-           "command_engine.execute_action now contains: for every action in state with status "
-           "AWAITING_APPROVAL, set status=COMPLETED. That (a) reports actions as executed when no "
-           "actuator ran and no verification was recorded, (b) bypasses the owner approval that "
-           "HIGH-risk actions require, and (c) is not scoped to the incident, so it also completes "
-           "actions belonging to other incidents. ai/resolution_policy.py already does this "
-           "correctly: scoped to the incident and marked CANCELLED (superseded) with a reason in "
-           "the agent log. Left failing deliberately so the conflict is visible rather than "
-           "papered over; Firas to agree the fix with Engineer 2.",
-    strict=False,
-)
 @pytest.mark.asyncio
 async def test_optional_actions_are_cancelled_once_the_hazard_is_addressed():
     """The resolution rule: STOP_MACHINE completing resolves the incident, and the remaining

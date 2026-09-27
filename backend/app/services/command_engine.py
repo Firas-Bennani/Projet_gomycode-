@@ -161,12 +161,13 @@ class CommandEngine:
             "timestamp": datetime.utcnow().isoformat()
         }
 
-        # If primary mitigation action executed, complete companion actions and resolve all active zone incidents
-        if action.action_type in ["STOP_MACHINE", "ACTIVATE_COOLING", "ACTIVATE_SUPPRESSION", "EVACUATE_ZONE", "ISOLATE_DEVICE", "CLOSE_DOOR"]:
-            for a in state.actions.values():
-                if a.status == ActionStatus.AWAITING_APPROVAL:
-                    a.status = ActionStatus.COMPLETED
-                    a.completed_at = datetime.utcnow()
+        # P9 (applied by Engineer 1 on Firas's instruction — please review): the block that used
+        # to be here marked EVERY action in state with status AWAITING_APPROVAL as COMPLETED.
+        # That reported actions as executed when no actuator had run and `verification` was empty,
+        # bypassed the owner approval HIGH-risk actions like EVACUATE_ZONE exist to require, and
+        # was not scoped to the incident. ai/resolution_policy.py (called below) does the same job
+        # correctly: scoped to this incident, marked CANCELLED as superseded, with the reason
+        # written to the agent log.
 
         await event_bus.publish(
             event_type="ACTION_STATUS",

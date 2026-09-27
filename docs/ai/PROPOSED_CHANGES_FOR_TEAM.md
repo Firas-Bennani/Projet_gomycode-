@@ -308,11 +308,29 @@ Nothing on Engineer 1's side needs changing when this lands — the rules are al
 
 ---
 
-## ⚠️ P9 — `backend/app/services/command_engine.py` — an upstream change reports actions as done that never ran
+## ✅ P9 — APPLIED by Engineer 1 on 2026-09-27 at 12:45, on Firas's instruction. **Please review.**
 
-**Raised 2026-09-27 ~12:20, after merging upstream main. NOT changed by Engineer 1 — this is
-someone else's deliberate change and Firas should agree the fix with them.** Detection, the demo
-and every scenario are unaffected; this is about what the dashboard *claims*.
+**Engineer 2 had not replied at the time of writing, so this was applied on Firas's decision after
+no reply.** Raised at ~12:20 after merging upstream main; applied at ~12:45. If you disagree,
+reverting is deleting one comment block and restoring five lines — but please read why first.
+
+**What was removed:** the five lines in `execute_action` quoted below. **What replaces it:** nothing
+new — `ai/resolution_policy.evaluate_incident_after(action)` was already being called a few lines
+further down and already did the job properly.
+
+**Verified live after applying:** authorising **only** `STOP_MACHINE` on an overheating incident
+leaves `ACTIVATE_COOLING` and `EVACUATE_ZONE` as **CANCELLED** (2 of 2), **zero** actions marked
+COMPLETED without a verification record, the incident **RESOLVED**, and the agent log carries the
+reason: *"INC-E10D resolved by the 'hazard_resolver_completed' rule: STOP_MACHINE completed and the
+hazard is receding (machine parameters back inside limits). 2 pending action(s) cancelled as
+superseded"*. 115 pytest tests pass (the test that encoded this is a normal passing test again, no
+longer xfail), `final_verification.py` all green, `e2e_test.py` 15/15 three runs in a row.
+
+---
+
+### The original report, for the record
+
+Detection, the demo and every scenario were unaffected; this was about what the dashboard *claims*.
 
 The merged `execute_action` now contains:
 
