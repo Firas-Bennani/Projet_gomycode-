@@ -387,3 +387,74 @@ with the patch. Not a MetricsBar bug; the AI layer is unaffected (it reads `MACH
 - An `ESCALATED` incident drops out of the UI's "ACTIVE ALERTS" count — P7.
 - `GET /api/ai/n8n/state` shows the **last** exchange, so after three AUTHORIZE clicks it shows
   the third one's 409 rather than the first one's success. The log line now explains it.
+
+---
+
+## Step 5 — RAG corpus + Gemini workflow BUILT, waiting on the credential (2026-09-27 ~06:15)
+
+### Done without needing Firas
+
+**Corpus — `backend/ai/rag/corpus/`, 5 documents, 31 numbered sections:**
+`SOP-M04-Compressor.md`, `Fire-Emergency-Procedure.md`, `Evacuation-Procedure.md`,
+`OT-Cyber-Incident-Playbook.md`, `Maintenance-Plan.md`. Written so the thresholds in the
+procedures are the same numbers the agents actually use (8.0 bar, 80 °C, 40 ppm, 7.2 bar
+warning), and so the rules the copilot follows are *written down* and citable — including
+"suppression requires smoke; never discharge it on a hot machine" (SOP-M04 §5.1, FIRE-EP-03 §2.3)
+and "distrust a spoofed sensor, do not ignore it" (OT-CYBER-PB §4), which is Step 8's flagship.
+
+**`rag_engine.py` rewritten** to load that corpus, retrieving **per section** rather than per
+document so citations are specific (`SOP-M04 §4.2`, not "the M-04 manual"). Keeps its old
+`query()` signature and `{answer, sources}` shape, so `POST /api/ai/rag/query` and the agents are
+unaffected. Falls back to the original hardcoded documents if the corpus directory is missing.
+Retrieval spot-checks: overheating → `SOP-M04 §4.2`; fire → `FIRE-EP-03 §2`; spoofed sensor →
+`OT-CYBER-PB §4`. All correct.
+
+**Two new endpoints** (in my own router):
+- `GET /api/ai/n8n/corpus` — the corpus, one item per section. The ingestion workflow reads this
+  over HTTP instead of mounting a directory, so the workflow carries no filesystem paths and
+  works identically on the host or in Docker.
+- `GET /api/ai/n8n/rag?q=&hazard=&limit=` — keyword retrieval, exposed as a tool for the agent.
+
+**`n8n/workflows/incident_response_v2.json` (21 nodes)** — v1's Code node replaced by an
+**AI Agent** with a Google Gemini chat model (temperature 0.2), a **Structured Output Parser**
+(schema: what / why[] / impact / prediction / recommended_action_ids[] / sources[]) and **two
+retrieval tools**. The system prompt forbids inventing action ids, forbids setting risk or
+confidence, requires citing only sections actually retrieved, and requires hedged language.
+Everything downstream of the recommendation is byte-for-byte v1's logic.
+
+**`n8n/workflows/rag_ingestion.json` (7 nodes)** — Manual Trigger → GET corpus → one item per
+section → Default Data Loader (chunk 400 / overlap 50, metadata `doc_id`, `citation`, `section`,
+`hazard`) → Gemini embeddings → Simple Vector Store insert, `clearStore: true` so re-running does
+not duplicate chunks.
+
+Both imported into n8n and left **inactive**. v1 is still the active workflow, and
+`n8n/e2e_test.py` still passes **15/15**, `pytest` **64 passed**.
+
+### Why the agent gets *two* retrieval tools
+
+n8n's Simple Vector Store node describes itself as *"for experimental use only: data is stored in
+memory and will be lost if n8n restarts. Data may also be cleared if available memory gets low."*
+This laptop has already had processes reaped for low memory three times tonight. So the agent has
+both `procedure_vector_search` (the store, as agreed) and `procedure_search` (HTTP to the backend
+keyword RAG, the agreed fallback). If the store is empty after a restart, retrieval still works
+and the demo still cites real sections.
+
+### Fallback chain, verified by construction
+
+The AI Agent node is set to `onError: continueErrorOutput`, and its error branch runs the same
+deterministic template v1 uses, producing an identical payload shape. So: **no credential, wrong
+credential, exhausted quota, or malformed model output all degrade to v1 behaviour**, and the
+incident still gets recommendations. This is also where Step 5b's NIM → Gemini → template chain
+will slot in.
+
+### Node contract was verified, not guessed
+
+Type names and version numbers were read out of the installed `@n8n/n8n-nodes-langchain`
+package on disk (`agent` supports up to 3.1, using 2.2; `lmChatGoogleGemini` 1.1;
+`outputParserStructured` 1.1; `toolHttpRequest` / `toolVectorStore` 1.1;
+`vectorStoreInMemory` 1.2 — the version whose manual memory key is shared across workflows;
+`documentDefaultDataLoader` 1.1). Credential type for both Gemini nodes is `googlePalmApi`.
+
+### Blocked on
+
+The Gemini credential, which only exists inside n8n. Until it is added, v2 cannot be activated.

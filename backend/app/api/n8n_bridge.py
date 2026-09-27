@@ -375,6 +375,62 @@ async def set_status(incident_id: str, body: StatusRequest):
             "reported": status, "applied": True}
 
 
+# ----------------------------------------------------------------- RAG for the n8n agent
+
+@router.get("/corpus")
+def corpus():
+    """The whole procedure corpus, one item per section.
+
+    Used by `rag_ingestion.json` to populate n8n's Simple Vector Store. Serving it over HTTP
+    instead of mounting a directory means the workflow carries no filesystem paths and works
+    the same whether n8n runs on the host or in a container.
+    """
+    from ai.rag.rag_engine import rag_engine
+    sections = [
+        {
+            "doc_id": section.doc_id,
+            "document_title": section.doc_title,
+            "citation": section.citation,
+            "section": section.label,
+            "category": section.category,
+            "hazard": section.hazard,
+            "text": section.text,
+        }
+        for section in rag_engine.sections
+    ]
+    return {
+        "documents": [
+            {"id": d["id"], "title": d["title"], "hazard": d.get("hazard"),
+             "category": d.get("category"), "file": d.get("file")}
+            for d in rag_engine.documents
+        ],
+        "sections": sections,
+        "count": len(sections),
+    }
+
+
+@router.get("/rag")
+def rag_search(q: str, hazard: Optional[str] = None, limit: int = 4):
+    """Keyword retrieval over the corpus, exposed as a tool for the n8n AI Agent.
+
+    This is the retrieval path that always works. n8n's Simple Vector Store is in-memory and
+    declares itself experimental ("data is lost if n8n restarts, and may be cleared if
+    available memory gets low"), so the agent is given both and can fall back to this one.
+    """
+    from ai.rag.rag_engine import rag_engine
+    hits = rag_engine.search(q, hazard=hazard, limit=max(1, min(limit, 10)))
+    return {
+        "query": q,
+        "hazard": hazard,
+        "count": len(hits),
+        "hits": [
+            {"citation": h["citation"], "section": h["section"], "document": h["document_title"],
+             "relevance": h["relevance"], "text": h["text"]}
+            for h in hits
+        ],
+    }
+
+
 # ----------------------------------------------------------------- introspection
 
 @router.get("/state")

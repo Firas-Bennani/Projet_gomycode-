@@ -1,0 +1,201 @@
+{
+  "name": "RAG ingestion (procedures -> Simple Vector Store)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "600dc7fa-c7e2-5a9e-9d76-126542438830",
+      "name": "When clicking Execute",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/ai/n8n/corpus",
+        "options": {}
+      },
+      "id": "1b93c969-a0ae-5a13-854c-d966bedc4b1b",
+      "name": "GET corpus from backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One n8n item per procedure section, so each becomes its own retrievable chunk with its own\n// citation metadata.\nconst sections = $input.first().json.sections || [];\nreturn sections.map(s => ({\n  json: {\n    text: `${s.citation} \u2014 ${s.section}\\n\\n${s.text}`,\n    doc_id: s.doc_id,\n    citation: s.citation,\n    section: s.section,\n    hazard: s.hazard || 'ANY',\n    category: s.category || '',\n  },\n}));"
+      },
+      "id": "c91311fa-7af2-5ca1-8bed-97d4e6374c86",
+      "name": "One item per section",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "copilot_procedures"
+        },
+        "clearStore": true
+      },
+      "id": "1d6dcace-e7c0-56e8-b50f-8e511ad2c964",
+      "name": "Simple Vector Store (insert)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/text-embedding-004"
+      },
+      "id": "d073d347-681f-5867-aa9e-a9313d306c85",
+      "name": "Embeddings Gemini (insert)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "json",
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "doc_id",
+                "value": "={{ $json.doc_id }}"
+              },
+              {
+                "name": "citation",
+                "value": "={{ $json.citation }}"
+              },
+              {
+                "name": "section",
+                "value": "={{ $json.section }}"
+              },
+              {
+                "name": "hazard",
+                "value": "={{ $json.hazard }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "41a23876-cf18-521f-86d1-f30817a707cd",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 400,
+        "chunkOverlap": 50,
+        "options": {}
+      },
+      "id": "389da681-1c87-5303-a4e6-fad521757ed6",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        620,
+        720
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking Execute": {
+      "main": [
+        [
+          {
+            "node": "GET corpus from backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET corpus from backend": {
+      "main": [
+        [
+          {
+            "node": "One item per section",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per section": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store (insert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Gemini (insert)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store (insert)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store (insert)",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
